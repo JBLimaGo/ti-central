@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1A1018">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>TI Central</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --rose:#E8436A;--rose-lt:#FDE8EE;--rose-dk:#B52E50;
+  --ink:#1A1018;--ink-60:#7A6A74;--ink-20:#EDE8EC;
+  --cream:#FAF7F9;--amber:#F4A742;--amber-lt:#FEF3E2;
+  --green:#2DBF7E;--green-lt:#E2F8EE;--blue:#4A78E8;
+  --blue-lt:#EBF0FD;--purple:#9B59D0;--purple-lt:#F2EAFA;
+  --red:#E84343;--red-lt:#FDEAEA;--white:#FFFFFF;
+  --shadow:0 2px 12px rgba(26,16,24,.08);
+  --shadow-md:0 4px 24px rgba(26,16,24,.13);
+  --sidebar-w:230px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);background:var(--ink);display:flex;flex-direction:column;flex-shrink:0;transition:transform .25s;z-index:200;}
+.sidebar-brand{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+.brand-dot{width:8px;height:8px;border-radius:50%;background:var(--rose);display:inline-block;margin-right:7px;box-shadow:0 0 8px var(--rose);}
+.brand-name{font-size:15px;font-weight:600;color:#fff;}
+.brand-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:3px;letter-spacing:.5px;text-transform:uppercase;}
+.nav{flex:1;padding:14px 0;overflow-y:auto;}
+.nav-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.28);padding:14px 20px 5px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:rgba(255,255,255,.5);font-size:13.5px;border-left:3px solid transparent;transition:all .15s;user-select:none;}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85);}
+.nav-item.active{background:rgba(232,67,106,.13);color:var(--rose);border-left-color:var(--rose);}
+.nav-ico{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--rose);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;min-width:20px;text-align:center;}
+.sidebar-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,.07);font-size:12px;color:rgba(255,255,255,.3);}
+.sidebar-foot strong{display:block;color:rgba(255,255,255,.55);margin-bottom:2px;font-size:13px;}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:var(--white);border-bottom:1px solid var(--ink-20);padding:0 20px;height:58px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:100;}
+.menu-toggle{display:none;background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink);padding:4px;}
+.topbar-title{font-size:15px;font-weight:600;flex:1;}
+.topbar-chip{font-size:11px;font-family:'DM Mono',monospace;background:var(--rose-lt);color:var(--rose-dk);padding:4px 11px;border-radius:20px;font-weight:500;flex-shrink:0;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 2px var(--green-lt);}
+.sync-dot.syncing{animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+.content-wrap{flex:1;overflow-y:auto;padding:20px;}
+
+/* ── PANELS ── */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}
+.kpi-card{background:var(--white);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid;position:relative;overflow:hidden;cursor:default;}
+.kpi-card.rose{border-top-color:var(--rose);}
+.kpi-card.amber{border-top-color:var(--amber);}
+.kpi-card.blue{border-top-color:var(--blue);}
+.kpi-card.green{border-top-color:var(--green);}
+.kpi-card.purple{border-top-color:var(--purple);}
+.kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-60);font-weight:600;}
+.kpi-val{font-size:30px;font-weight:300;margin:5px 0 3px;letter-spacing:-1px;}
+.kpi-sub{font-size:11px;color:var(--ink-60);}
+.kpi-ico{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.08;}
+
+/* ── CARD ── */
+.card{background:var(--white);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px;}
+.card-hdr{padding:15px 18px 13px;border-bottom:1px solid var(--ink-20);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.card-ttl{font-size:13.5px;font-weight:600;}
+.card-sub{font-size:12px;color:var(--ink-60);margin-top:1px;}
+.card-bdy{padding:14px 18px;}
+
+/* ── BTN ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--rose);color:#fff;}
+.btn-primary:hover{background:var(--rose-dk);}
+.btn-ghost{background:transparent;color:var(--ink-60);border:1.5px solid var(--ink-20);}
+.btn-ghost:hover{background:var(--ink-20);color:var(--ink);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#1a9a60;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:7px;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{border-bottom:2px solid var(--ink-20);}
+th{text-align:left;padding:9px 12px;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-60);font-weight:600;white-space:nowrap;}
+td{padding:10px 12px;border-bottom:1px solid var(--ink-20);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tbody tr{cursor:pointer;transition:background .1s;}
+tbody tr:hover{background:var(--cream);}
+
+/* ── BADGES / CHIPS ── */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.b-aberto{background:var(--amber-lt);color:#b87a00;}
+.b-andamento{background:var(--blue-lt);color:var(--blue);}
+.b-resolvido{background:var(--green-lt);color:#1a8a57;}
+.b-critico{background:var(--red-lt);color:var(--red);}
+.chip{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;}
+.c-bug{background:var(--red-lt);color:var(--red);}
+.c-erro{background:var(--amber-lt);color:#b87a00;}
+.c-duvida{background:var(--blue-lt);color:var(--blue);}
+.c-impl{background:var(--purple-lt);color:var(--purple);}
+.c-infra{background:var(--ink-20);color:var(--ink-60);}
+.loja-pill{display:inline-block;font-size:11px;font-weight:500;background:var(--rose-lt);color:var(--rose-dk);padding:2px 8px;border-radius:6px;}
+.id-code{font-family:'DM Mono',monospace;font-size:12px;color:var(--ink-60);}
+
+/* ── FILTERS ── */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
+.filters input,.filters select{padding:8px 12px;border:1.5px solid var(--ink-20);border-radius:8px;font-family:inherit;font-size:13px;color:var(--ink);background:var(--white);outline:none;transition:border-color .15s;}
+.filters input:focus,.filters select:focus{border-color:var(--rose);}
+.filters input{min-width:200px;flex:1;max-width:280px;}
+.filters select{min-width:130px;}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(26,16,24,.55);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:16px;width:700px;max-width:100%;max-height:92vh;overflow-y:auto;box-shadow:var(--shadow-md);animation:fadeUp .2s ease;display:flex;flex-direction:column;}
+.modal-lg{width:880px;}
+@keyframes fadeUp{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-hdr{padding:18px 22px 14px;border-bottom:1px solid var(--ink-20);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:2;flex-shrink:0;}
+.modal-ttl{font-size:15px;font-weight:600;}
+.modal-sub{font-size:12px;color:var(--ink-60);margin-top:2px;}
+.modal-x{width:28px;height:28px;border-radius:7px;background:var(--ink-20);border:none;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--ink-60);flex-shrink:0;transition:all .15s;}
+.modal-x:hover{background:var(--rose-lt);color:var(--rose);}
+.modal-bdy{padding:18px 22px;flex:1;}
+.modal-ftr{padding:14px 22px;border-top:1px solid var(--ink-20);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:var(--white);flex-shrink:0;}
+
+/* ── FORM ── */
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:11px;font-weight:600;color:var(--ink-60);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1.5px solid var(--ink-20);border-radius:8px;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--white);outline:none;transition:border-color .15s,box-shadow .15s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,67,106,.1);}
+.fg textarea{min-height:82px;resize:vertical;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ── DETAIL TABS ── */
+.dtabs{display:flex;border-bottom:2px solid var(--ink-20);margin-bottom:18px;}
+.dtab{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--ink-60);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;}
+.dtab.active{color:var(--rose);border-bottom-color:var(--rose);}
+.dtab-panel{display:none;}
+.dtab-panel.active{display:block;}
+
+/* ── DETAIL ── */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.df-lbl{font-size:11px;color:var(--ink-60);font-weight:500;margin-bottom:3px;}
+.df-val{font-size:13.5px;font-weight:500;}
+.desc-box{background:var(--cream);border-radius:8px;padding:12px 14px;font-size:13.5px;line-height:1.65;border-left:3px solid var(--rose);white-space:pre-wrap;}
+
+/* ── COBRANÇAS ── */
+.cobr-counter{display:inline-flex;align-items:center;gap:10px;background:var(--rose-lt);border-radius:10px;padding:10px 16px;margin-bottom:14px;}
+.cobr-num{font-size:30px;font-weight:300;color:var(--rose-dk);line-height:1;}
+.cobr-lbl{font-size:12px;color:var(--rose-dk);font-weight:500;}
+.conv-item{border:1.5px solid var(--ink-20);border-radius:10px;margin-bottom:10px;overflow:hidden;transition:border-color .15s;}
+.conv-item:hover{border-color:var(--rose-lt);}
+.conv-hdr{background:var(--cream);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:8px;}
+.conv-seq{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-60);background:var(--white);border:1px solid var(--ink-20);border-radius:6px;padding:2px 8px;flex-shrink:0;}
+.conv-bdy{padding:14px;border-top:1px solid var(--ink-20);display:none;}
+.conv-bdy.open{display:block;}
+.conv-nota{font-size:13.5px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap;}
+.imgs-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.img-thumb{position:relative;width:88px;height:88px;border-radius:8px;overflow:hidden;border:2px solid var(--ink-20);cursor:pointer;flex-shrink:0;transition:border-color .15s;}
+.img-thumb:hover{border-color:var(--rose);}
+.img-thumb img{width:100%;height:100%;object-fit:cover;}
+.img-del{position:absolute;top:3px;right:3px;background:rgba(232,67,106,.9);color:#fff;border:none;border-radius:5px;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.img-add{width:88px;height:88px;border-radius:8px;border:2px dashed var(--ink-20);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-60);font-size:11px;gap:3px;transition:all .15s;background:var(--cream);flex-shrink:0;}
+.img-add:hover{border-color:var(--rose);color:var(--rose);background:var(--rose-lt);}
+.img-add-ico{font-size:22px;}
+.nc-form{background:var(--blue-lt);border-radius:10px;padding:16px;margin-bottom:14px;border:1.5px solid rgba(74,120,232,.2);}
+.nc-form-ttl{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:12px;}
+
+/* ── LIGHTBOX ── */
+.lbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;align-items:center;justify-content:center;}
+.lbox.open{display:flex;}
+.lbox img{max-width:92vw;max-height:88vh;border-radius:8px;object-fit:contain;}
+.lbox-x{position:fixed;top:16px;right:20px;color:#fff;font-size:26px;cursor:pointer;background:rgba(255,255,255,.1);border:none;border-radius:8px;padding:4px 10px;line-height:1;}
+
+/* ── RANKING ── */
+.rank-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--ink-20);}
+.rank-row:last-child{border-bottom:none;}
+.rank-n{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-60);width:18px;flex-shrink:0;}
+.rank-name{font-size:13px;font-weight:500;flex:1;}
+.rank-bar-wrap{width:72px;height:5px;background:var(--ink-20);border-radius:10px;flex-shrink:0;}
+.rank-bar{height:100%;border-radius:10px;background:var(--rose);}
+.rank-cnt{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;min-width:22px;text-align:right;}
+.rank-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;}
+.rt-hot{background:var(--red-lt);color:var(--red);}
+.rt-ok{background:var(--green-lt);color:var(--green);}
+
+/* ── MINI STAT ── */
+.ms-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.ms-card{background:var(--cream);border-radius:9px;padding:10px;text-align:center;}
+.ms-val{font-size:20px;font-weight:300;}
+.ms-lbl{font-size:10px;color:var(--ink-60);margin-top:2px;}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:22px;}
+.timeline::before{content:'';position:absolute;left:6px;top:5px;bottom:5px;width:2px;background:var(--ink-20);}
+.tl-item{position:relative;margin-bottom:14px;}
+.tl-dot{position:absolute;left:-22px;top:3px;width:13px;height:13px;border-radius:50%;background:var(--rose);border:2px solid var(--white);box-shadow:0 0 0 2px var(--rose);}
+.tl-dot.gray{background:var(--ink-60);box-shadow:0 0 0 2px var(--ink-60);}
+.tl-dot.ok{background:var(--green);box-shadow:0 0 0 2px var(--green);}
+.tl-meta{font-size:11px;color:var(--ink-60);margin-bottom:2px;}
+.tl-text{font-size:13px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow-md);z-index:400;transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--ink-60);font-size:13px;gap:10px;flex-direction:column;}
+.spinner{width:28px;height:28px;border:3px solid var(--ink-20);border-top-color:var(--rose);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── OVERLAY para mobile sidebar ── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;}
+
+/* ══ MOBILE ══ */
+@media(max-width:768px){
+  .sidebar{position:fixed;top:0;bottom:0;left:0;transform:translateX(-100%);z-index:200;}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay.show{display:block;}
+  .menu-toggle{display:block;}
+  .main{margin-left:0;}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+  .kpi-grid .kpi-card:last-child{grid-column:span 2;}
+  .fr{grid-template-columns:1fr;}
+  .fr3{grid-template-columns:1fr 1fr;}
+  .detail-grid{grid-template-columns:1fr;}
+  .filters input{max-width:100%;}
+  .content-wrap{padding:12px;}
+  .topbar{padding:0 12px;}
+  .topbar-chip{display:none;}
+  table{font-size:12px;}
+  th,td{padding:8px 8px;}
+  .toast{bottom:16px;right:12px;left:12px;text-align:center;}
+}
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .kpi-val{font-size:24px;}
+  .modal{border-radius:12px 12px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:95vh;width:100%!important;animation:slideUp .25s ease;}
+  @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .overlay{align-items:flex-end;padding:0;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div><span class="brand-dot"></span><span class="brand-name">TI Central</span></div>
+    <div class="brand-sub">Gestão de Chamados</div>
+  </div>
+  <div class="nav">
+    <div class="nav-label">Principal</div>
+    <div class="nav-item active" onclick="navTo('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
+    <div class="nav-item" onclick="navTo('chamados')"><span class="nav-ico">🎫</span>Chamados<span class="nav-badge" id="badge-open">0</span></div>
+    <div class="nav-label">Análises</div>
+    <div class="nav-item" onclick="navTo('lojas')"><span class="nav-ico">🏪</span>Por Loja</div>
+    <div class="nav-item" onclick="navTo('relatorio')"><span class="nav-ico">📋</span>Relatório</div>
+  </div>
+  <div class="sidebar-foot"><strong>Agente TI</strong>9 lojas + CD · online</div>
+</nav>
+<div class="sidebar-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title" id="tb-title">Dashboard</div>
+    <span class="topbar-chip" id="tb-date"></span>
+    <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
+    <button class="btn btn-primary btn-sm" onclick="openNew()">＋ Chamado</button>
+  </div>
+
+  <div class="content-wrap">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="kpi-grid" id="kpi-grid"><div class="loading"><div class="spinner"></div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:18px;" class="two-col-wrap">
+        <div class="card">
+          <div class="card-hdr"><div><div class="card-ttl">Chamados por Loja</div><div class="card-sub">Ranking do período</div></div></div>
+          <div class="card-bdy" id="loja-rank"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-ttl">Tipos &amp; Cobranças</div></div>
+          <div class="card-bdy" id="tipos-panel"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div><div class="card-ttl">Chamados Recentes</div></div>
+          <button class="btn btn-ghost btn-sm" onclick="navTo('chamados')">Ver todos →</button>
+        </div>
+        <div class="tbl-wrap"><table id="tbl-recent"><tr><td><div class="loading"><div class="spinner"></div></div></td></tr></table></div>
+      </div>
+    </div>
+
+    <!-- CHAMADOS -->
+    <div class="panel" id="panel-chamados">
+      <div class="filters">
+        <input type="text" id="f-busca" placeholder="🔍 Buscar…" oninput="renderTodos()">
+        <select id="f-loja" onchange="renderTodos()"><option value="">Todas as Lojas</option></select>
+        <select id="f-tipo" onchange="renderTodos()">
+          <option value="">Todos os Tipos</option>
+          <option>Bug</option><option>Erro</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option>
+        </select>
+        <select id="f-status" onchange="renderTodos()">
+          <option value="">Todos os Status</option>
+          <option>Aberto</option><option>Em andamento</option><option>Resolvido</option>
+        </select>
+      </div>
+      <div class="card"><div class="tbl-wrap"><table id="tbl-todos"></table></div></div>
+    </div>
+
+    <!-- LOJAS -->
+    <div class="panel" id="panel-lojas">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;" id="lojas-grid"></div>
+    </div>
+
+    <!-- RELATÓRIO -->
+    <div class="panel" id="panel-relatorio">
+      <div class="card"><div class="card-hdr"><div class="card-ttl">📋 Relatório para Supervisor</div><button class="btn btn-ghost btn-sm" onclick="printRelatorio()">🖨 Imprimir</button></div><div class="card-bdy" id="relatorio-bdy"></div></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ══ MODAL NOVO CHAMADO ══ -->
+<div class="overlay" id="ov-novo" onclick="ovClose(event,'ov-novo')">
+<div class="modal">
+  <div class="modal-hdr">
+    <div><div class="modal-ttl">Novo Chamado</div><div class="modal-sub">Registre o problema ou solicitação</div></div>
+    <button class="modal-x" onclick="closeOv('ov-novo')">✕</button>
+  </div>
+  <div class="modal-bdy">
+    <div class="fr">
+      <div class="fg"><label>Loja / Unidade</label><select id="n-loja"></select></div>
+      <div class="fg"><label>Solicitante</label><input id="n-user" type="text" placeholder="Nome do usuário"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Tipo</label><select id="n-tipo"><option>Bug</option><option>Erro</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option></select></div>
+      <div class="fg"><label>Prioridade</label><select id="n-prio"><option>Baixa</option><option>Média</option><option selected>Alta</option><option>Crítica</option></select></div>
+    </div>
+    <div class="fg"><label>Descrição detalhada</label><textarea id="n-desc" placeholder="Descreva o que está acontecendo, quando começou, em qual etapa do sistema, qual o impacto para a loja…"></textarea></div>
+    <div class="fr">
+      <div class="fg"><label>Sistema Afetado</label><select id="n-sist"><option>Checkout (PDV)</option><option>Sistema Web</option><option>Sincronização</option><option>Impressora</option><option>Internet / Rede</option><option>Hardware</option><option>Outro</option></select></div>
+      <div class="fg"><label>Status</label><select id="n-stat"><option>Aberto</option><option>Em andamento</option><option>Resolvido</option></select></div>
+    </div>
+  </div>
+  <div class="modal-ftr">
+    <button class="btn btn-ghost" onclick="closeOv('ov-novo')">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveChamado()">Salvar Chamado</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ MODAL DETALHE ══ -->
+<div class="overlay" id="ov-det" onclick="ovClose(event,'ov-det')">
+<div class="modal modal-lg">
+  <div class="modal-hdr">
+    <div><div class="modal-ttl" id="det-ttl"></div><div class="modal-sub" id="det-sub"></div></div>
+    <button class="modal-x" onclick="closeOv('ov-det')">✕</button>
+  </div>
+  <div class="modal-bdy">
+    <div class="dtabs">
+      <div class="dtab active" onclick="switchDTab(0)">📄 Dados do Chamado</div>
+      <div class="dtab" onclick="switchDTab(1)">💬 Suporte / Cobranças <span id="det-cobr-badge" style="background:var(--rose);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px;">0</span></div>
+    </div>
+
+    <!-- TAB 0 -->
+    <div class="dtab-panel active" id="dt0">
+      <div class="detail-grid">
+        <div><div class="df-lbl">ID</div><div class="df-val id-code" id="det-id"></div></div>
+        <div><div class="df-lbl">Data</div><div class="df-val" id="det-data"></div></div>
+        <div><div class="df-lbl">Loja</div><div class="df-val" id="det-loja"></div></div>
+        <div><div class="df-lbl">Solicitante</div><div class="df-val" id="det-user"></div></div>
+        <div><div class="df-lbl">Tipo</div><div class="df-val" id="det-tipo"></div></div>
+        <div><div class="df-lbl">Sistema</div><div class="df-val" id="det-sist"></div></div>
+        <div><div class="df-lbl">Prioridade</div><div class="df-val" id="det-prio"></div></div>
+        <div>
+          <div class="df-lbl">Status</div>
+          <div class="df-val" id="det-stat-badge"></div>
+          <select id="det-stat-sel" style="margin-top:6px;font-size:12px;padding:5px 8px;border:1.5px solid var(--ink-20);border-radius:7px;width:100%;font-family:inherit;" onchange="updateStatus()">
+            <option>Aberto</option><option>Em andamento</option><option>Resolvido</option>
+          </select>
+        </div>
+      </div>
+      <div><div class="df-lbl" style="margin-bottom:6px;">Descrição</div><div class="desc-box" id="det-desc"></div></div>
+    </div>
+
+    <!-- TAB 1 -->
+    <div class="dtab-panel" id="dt1">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div class="cobr-counter">
+          <div class="cobr-num" id="cobr-total">0</div>
+          <div><div class="cobr-lbl">cobranças ao suporte</div><div style="font-size:11px;color:var(--rose-dk)">via WhatsApp</div></div>
+        </div>
+        <button class="btn btn-green btn-sm" onclick="toggleNcForm()">＋ Registrar Cobrança</button>
+      </div>
+
+      <!-- FORM NOVA COBRANÇA -->
+      <div class="nc-form" id="nc-form" style="display:none;">
+        <div class="nc-form-ttl">💬 Nova Cobrança ao Suporte</div>
+        <div class="fr">
+          <div class="fg"><label>Data</label><input type="date" id="nc-data"></div>
+          <div class="fg"><label>Resposta do Suporte</label>
+            <select id="nc-resp">
+              <option>Aguardando análise</option><option>Em desenvolvimento</option>
+              <option>Resolvido pelo suporte</option><option>Sem previsão</option>
+              <option>Solicitado mais informações</option><option>Escalado para dev</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg"><label>Resumo da Conversa</label><textarea id="nc-nota" placeholder="O que foi tratado com o suporte, qual resposta recebida, próximos passos combinados…"></textarea></div>
+        <div class="fg">
+          <label>Prints da Conversa (WhatsApp) — até 10 imagens</label>
+          <div id="nc-imgs-wrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
+          <input type="file" id="nc-file" accept="image/*" multiple style="display:none;" onchange="handleFiles(event)">
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="document.getElementById('nc-file').click()">📎 Adicionar imagens</button>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button class="btn btn-ghost btn-sm" onclick="toggleNcForm()">Cancelar</button>
+          <button class="btn btn-blue btn-sm" id="btn-save-cobr" onclick="saveCobranca()">💾 Salvar Cobrança</button>
+        </div>
+      </div>
+
+      <div id="conv-list"></div>
+    </div>
+  </div>
+  <div class="modal-ftr">
+    <button class="btn btn-ghost" onclick="closeOv('ov-det')">Fechar</button>
+  </div>
+</div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lbox" id="lbox" onclick="closeLbox()">
+  <button class="lbox-x" onclick="closeLbox()">✕</button>
+  <img id="lbox-img" src="" alt="">
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ CONFIG SUPABASE ══
+const SB_URL = 'https://vmxpxopyhotybhnppmdl.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZteHB4b3B5aG90eWJobnBwbWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNzQ1MjcsImV4cCI6MjA5MjY1MDUyN30.8n_IEIFZUC53IfFOLoueg3buHGNFGrWYHftFv5-Hogg';
+
+const H = {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+
+async function sbGet(table, qs=''){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${qs}`, {headers:H});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPost(table, body){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {method:'POST',headers:H,body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPatch(table, qs, body){
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${qs}`, {method:'PATCH',headers:H,body:JSON.stringify(body)});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ══ CONSTANTES ══
+const LOJAS=['CD (Centro de Distribuição)','Loja 01 — Shopping Iguatemi','Loja 02 — Shopping Eldorado','Loja 03 — Shopping Morumbi','Loja 04 — Shopping Ibirapuera','Loja 05 — Shopping JK','Loja 06 — Shopping Anália Franco','Loja 07 — Shopping Metrô Itaquera','Loja 08 — Shopping Aricanduva','Loja 09 — Shopping ABC'];
+const TIPO_CHIP={'Bug':'c-bug','Erro':'c-erro','Dúvida':'c-duvida','Implementação':'c-impl','Infraestrutura':'c-infra'};
+const TIPO_COR={'Bug':'#E84343','Erro':'#F4A742','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74'};
+const PRIO_COR={'Crítica':'#E84343','Alta':'#F4A742','Média':'#4A78E8','Baixa':'#2DBF7E'};
+
+// ══ STATE ══
+let allChamados=[], currentId=null, ncImgs=[], detTabIdx=0;
+
+// ══ UTILS ══
+const $ = id => document.getElementById(id);
+const short = l => l.replace('CD (Centro de Distribuição)','CD').replace(/.*—\s*/,'');
+const today = () => new Date().toISOString().slice(0,10);
+const chip = t => `<span class="chip ${TIPO_CHIP[t]||'c-infra'}">${t}</span>`;
+const pBadge = s => {
+  const m={'Aberto':'b-aberto','Em andamento':'b-andamento','Resolvido':'b-resolvido','Crítica':'b-critico'};
+  return `<span class="badge ${m[s]||'b-aberto'}">${s}</span>`;
+};
+function genId(){
+  const nums = allChamados.map(c=>parseInt(c.id.replace('CH-',''))||0);
+  const next = nums.length ? Math.max(...nums)+1 : 1;
+  return 'CH-'+String(next).padStart(3,'0');
+}
+function setSyncing(v){
+  const d=$('sync-dot');
+  d.classList.toggle('syncing',v);
+  d.title = v ? 'Sincronizando…' : 'Sincronizado';
+}
+
+// ══ TOPBAR ══
+$('tb-date').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+
+// ══ SIDEBAR MOBILE ══
+function toggleSidebar(){$('sidebar').classList.toggle('open');$('sb-overlay').classList.toggle('show');}
+function closeSidebar(){$('sidebar').classList.remove('open');$('sb-overlay').classList.remove('show');}
+
+// ══ NAV ══
+function navTo(tab){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  $('panel-'+tab).classList.add('active');
+  const idx={dashboard:0,chamados:1,lojas:3,relatorio:4};
+  document.querySelectorAll('.nav-item')[idx[tab]||0].classList.add('active');
+  $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados',lojas:'Por Loja',relatorio:'Relatório'}[tab]||tab;
+  closeSidebar();
+  if(tab==='lojas') renderLojas();
+  if(tab==='relatorio') renderRelatorio();
+  if(tab==='chamados') renderTodos();
+}
+
+// ══ LOAD DATA ══
+async function loadAll(){
+  setSyncing(true);
+  try {
+    // Chamados com cobranças (count)
+    const chs = await sbGet('chamados','select=*,cobrancas(id)&order=created_at.desc');
+    allChamados = chs.map(c=>({...c, cobr_count: c.cobrancas?.length||0}));
+  } catch(e){ toast('⚠ Erro ao carregar dados: '+e.message); }
+  setSyncing(false);
+  renderDashboard();
+  populateSelects();
+}
+
+// ══ DASHBOARD ══
+function renderDashboard(){
+  renderKPIs();
+  renderRanking();
+  renderTipos();
+  renderRecent();
+}
+
+function renderKPIs(){
+  const t=allChamados.length;
+  const ab=allChamados.filter(c=>c.status==='Aberto').length;
+  const and=allChamados.filter(c=>c.status==='Em andamento').length;
+  const res=allChamados.filter(c=>c.status==='Resolvido').length;
+  const cob=allChamados.reduce((a,c)=>a+c.cobr_count,0);
+  const taxa=t?Math.round(res/t*100):0;
+  $('badge-open').textContent=ab;
+  $('kpi-grid').innerHTML=`
+    <div class="kpi-card rose"><div class="kpi-lbl">Total Chamados</div><div class="kpi-val">${t}</div><div class="kpi-sub">registrados</div><span class="kpi-ico">🎫</span></div>
+    <div class="kpi-card amber"><div class="kpi-lbl">Em Aberto</div><div class="kpi-val">${ab}</div><div class="kpi-sub" style="color:${ab>0?'var(--amber)':'var(--ink-60)'}">${ab>0?'⚠ Aguardando':'Tudo ok'}</div><span class="kpi-ico">🔓</span></div>
+    <div class="kpi-card blue"><div class="kpi-lbl">Em Andamento</div><div class="kpi-val">${and}</div><div class="kpi-sub">com suporte</div><span class="kpi-ico">🔧</span></div>
+    <div class="kpi-card green"><div class="kpi-lbl">Resolvidos</div><div class="kpi-val">${res}</div><div class="kpi-sub" style="color:var(--green)">✓ Taxa ${taxa}%</div><span class="kpi-ico">✅</span></div>
+    <div class="kpi-card purple"><div class="kpi-lbl">Cobranças Suporte</div><div class="kpi-val">${cob}</div><div class="kpi-sub">via WhatsApp</div><span class="kpi-ico">💬</span></div>`;
+}
+
+function renderRanking(){
+  const cnt={};allChamados.forEach(c=>{cnt[c.loja]=(cnt[c.loja]||0)+1;});
+  const s=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const max=s[0]?.[1]||1;
+  $('loja-rank').innerHTML=s.length?s.map(([l,n],i)=>`
+    <div class="rank-row">
+      <span class="rank-n">${String(i+1).padStart(2,'0')}</span>
+      <span class="rank-name">${short(l)}</span>
+      <div class="rank-bar-wrap"><div class="rank-bar" style="width:${Math.round(n/max*100)}%"></div></div>
+      <span class="rank-cnt">${n}</span>
+      ${i===0?'<span class="rank-tag rt-hot">↑</span>':''}
+      ${n===1?'<span class="rank-tag rt-ok">✓</span>':''}
+    </div>`).join(''):'<div style="color:var(--ink-60);font-size:13px;text-align:center;padding:24px">Nenhum dado ainda</div>';
+}
+
+function renderTipos(){
+  const cnt={};allChamados.forEach(c=>{cnt[c.tipo]=(cnt[c.tipo]||0)+1;});
+  const tot=allChamados.length||1;
+  const cob={};allChamados.forEach(c=>{if(c.cobr_count)cob[c.tipo]=(cob[c.tipo]||0)+c.cobr_count;});
+  const totalCob=Object.values(cob).reduce((a,b)=>a+b,0)||1;
+  $('tipos-panel').innerHTML=`
+    <div style="margin-bottom:14px;">${Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:9px;height:9px;border-radius:3px;background:${TIPO_COR[t]||'#ccc'};flex-shrink:0;"></div>
+        <span style="font-size:13px;flex:1;">${t}</span>
+        <div style="width:56px;height:4px;background:var(--ink-20);border-radius:10px;"><div style="height:100%;border-radius:10px;background:${TIPO_COR[t]||'#ccc'};width:${Math.round(n/tot*100)}%"></div></div>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;min-width:28px;text-align:right;">${Math.round(n/tot*100)}%</span>
+      </div>`).join('') || '<div style="font-size:12px;color:var(--ink-60)">Sem dados</div>'}
+    </div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--ink-60);text-transform:uppercase;letter-spacing:.5px;">Cobranças por Tipo</div>
+    ${Object.entries(cob).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+        ${chip(t)}
+        <div style="flex:1;height:4px;background:var(--ink-20);border-radius:10px;"><div style="height:100%;border-radius:10px;background:${TIPO_COR[t]||'#ccc'};width:${Math.round(n/totalCob*100)}%"></div></div>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;">${n}x</span>
+      </div>`).join('') || '<div style="font-size:12px;color:var(--ink-60)">Nenhuma cobrança ainda</div>'}`;
+}
+
+function renderRecent(){
+  const rows=allChamados.slice(0,6);
+  $('tbl-recent').innerHTML=tblHTML(rows);
+}
+
+// ══ TABELA ══
+function tblHTML(rows){
+  if(!rows.length) return '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink-60)">Nenhum chamado encontrado</td></tr>';
+  return `<thead><tr><th>ID</th><th>Loja</th><th>Usuário</th><th>Tipo</th><th>Sistema</th><th>Prioridade</th><th>Status</th><th>Cobranças</th><th>Data</th></tr></thead>
+  <tbody>${rows.map(c=>`<tr onclick="openDetail('${c.id}')">
+    <td class="id-code">${c.id}</td>
+    <td><span class="loja-pill">${short(c.loja)}</span></td>
+    <td>${c.usuario}</td>
+    <td>${chip(c.tipo)}</td>
+    <td style="font-size:12px;color:var(--ink-60)">${c.sistema}</td>
+    <td><span style="font-size:11px;font-weight:600;color:${PRIO_COR[c.prioridade]||'#ccc'}">${c.prioridade}</span></td>
+    <td>${pBadge(c.status)}</td>
+    <td style="text-align:center;">${c.cobr_count?`<span style="background:var(--rose-lt);color:var(--rose-dk);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">💬 ${c.cobr_count}</span>`:'<span style="color:var(--ink-20);font-size:13px;">—</span>'}</td>
+    <td style="font-size:12px;color:var(--ink-60)">${c.data}</td>
+  </tr>`).join('')}</tbody>`;
+}
+
+function renderTodos(){
+  const busca=($('f-busca')?.value||'').toLowerCase();
+  const loja=$('f-loja')?.value||'';
+  const tipo=$('f-tipo')?.value||'';
+  const stat=$('f-status')?.value||'';
+  const f=allChamados.filter(c=>(!loja||c.loja===loja)&&(!tipo||c.tipo===tipo)&&(!stat||c.status===stat)&&(!busca||c.loja.toLowerCase().includes(busca)||c.usuario.toLowerCase().includes(busca)||(c.descricao||'').toLowerCase().includes(busca)));
+  $('tbl-todos').innerHTML=tblHTML(f);
+}
+
+// ══ SELECTS ══
+function populateSelects(){
+  const fl=$('f-loja');
+  if(fl&&fl.options.length<=1) LOJAS.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=short(l);fl.appendChild(o);});
+  const nl=$('n-loja');
+  if(nl&&nl.options.length===0) LOJAS.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=short(l);nl.appendChild(o);});
+}
+
+// ══ NOVO CHAMADO ══
+function openNew(){
+  populateSelects();
+  $('ov-novo').classList.add('open');
+}
+async function saveChamado(){
+  const user=$('n-user').value.trim(), desc=$('n-desc').value.trim();
+  if(!user||!desc){toast('⚠ Preencha solicitante e descrição.');return;}
+  const btn=document.querySelector('#ov-novo .btn-primary');
+  btn.textContent='Salvando…';btn.disabled=true;
+  try{
+    setSyncing(true);
+    const c={id:genId(),loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today()};
+    await sbPost('chamados',c);
+    closeOv('ov-novo');
+    $('n-user').value='';$('n-desc').value='';
+    await loadAll();
+    toast('✅ Chamado '+c.id+' registrado!');
+  }catch(e){toast('⚠ Erro: '+e.message);}finally{btn.textContent='Salvar Chamado';btn.disabled=false;setSyncing(false);}
+}
+
+// ══ DETALHE ══
+async function openDetail(id){
+  currentId=id;
+  switchDTab(0);
+  const c=allChamados.find(x=>x.id===id);
+  if(!c)return;
+  $('det-ttl').textContent=c.id+' — '+short(c.loja);
+  $('det-sub').textContent=c.tipo+' · '+c.sistema+' · '+c.data;
+  $('det-id').textContent=c.id;
+  $('det-data').textContent=c.data;
+  $('det-loja').textContent=c.loja;
+  $('det-user').textContent=c.usuario;
+  $('det-tipo').innerHTML=chip(c.tipo);
+  $('det-sist').textContent=c.sistema;
+  $('det-prio').innerHTML=`<span style="font-weight:600;color:${PRIO_COR[c.prioridade]||'#ccc'}">${c.prioridade}</span>`;
+  $('det-stat-badge').innerHTML=pBadge(c.status);
+  $('det-stat-sel').value=c.status;
+  $('det-desc').textContent=c.descricao||'';
+  $('nc-data').value=today();
+  $('nc-nota').value='';
+  ncImgs=[];
+  $('nc-imgs-wrap').innerHTML='';
+  $('nc-form').style.display='none';
+  $('conv-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  $('ov-det').classList.add('open');
+  // load cobranças
+  await loadCobrancas(id);
+}
+
+async function loadCobrancas(chamadoId){
+  try{
+    const rows=await sbGet('cobrancas',`chamado_id=eq.${chamadoId}&select=*,cobranca_imagens(id,nome,data_url)&order=seq.asc`);
+    const n=rows.length;
+    $('det-cobr-badge').textContent=n;
+    $('cobr-total').textContent=n;
+    // update count in allChamados
+    const c=allChamados.find(x=>x.id===chamadoId);
+    if(c) c.cobr_count=n;
+    renderConvList(rows);
+  }catch(e){$('conv-list').innerHTML='<div style="color:var(--red);font-size:13px;padding:16px">Erro ao carregar cobranças: '+e.message+'</div>';}
+}
+
+function renderConvList(rows){
+  if(!rows.length){$('conv-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--ink-60);font-size:13px;">Nenhuma cobrança registrada.<br>Use o botão acima para registrar o contato com o suporte.</div>';return;}
+  $('conv-list').innerHTML=rows.map((cv,i)=>`
+    <div class="conv-item">
+      <div class="conv-hdr" onclick="toggleConv('cb${i}')">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="conv-seq">Cobrança #${cv.seq}</span>
+          <span style="font-size:13px;font-weight:500;">📅 ${cv.data}</span>
+          ${pBadge(cv.resposta==='Resolvido pelo suporte'?'Resolvido':cv.resposta==='Escalado para dev'?'Em andamento':'Aberto').replace(cv.resposta==='Resolvido pelo suporte'?'Resolvido':cv.resposta==='Escalado para dev'?'Em andamento':'Aberto',cv.resposta)}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${cv.cobranca_imagens?.length?`<span style="font-size:11px;color:var(--ink-60)">🖼 ${cv.cobranca_imagens.length}</span>`:''}
+          <span style="color:var(--ink-60)">▾</span>
+        </div>
+      </div>
+      <div class="conv-bdy" id="cb${i}">
+        <div class="conv-nota">${cv.nota}</div>
+        <div class="imgs-grid">
+          ${(cv.cobranca_imagens||[]).map(img=>`<div class="img-thumb" onclick="openLbox('${img.data_url}')"><img src="${img.data_url}" alt="${img.nome}"></div>`).join('')}
+          ${!(cv.cobranca_imagens?.length)?'<div style="font-size:12px;color:var(--ink-60)">Sem imagens nesta cobrança</div>':''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleConv(id){const b=$(id);if(b)b.classList.toggle('open');}
+
+async function updateStatus(){
+  const ns=$('det-stat-sel').value;
+  try{
+    setSyncing(true);
+    await sbPatch('chamados','id=eq.'+currentId,{status:ns});
+    const c=allChamados.find(x=>x.id===currentId);
+    if(c) c.status=ns;
+    $('det-stat-badge').innerHTML=pBadge(ns);
+    renderKPIs();renderRecent();
+    toast('✅ Status atualizado para: '+ns);
+  }catch(e){toast('⚠ Erro: '+e.message);}finally{setSyncing(false);}
+}
+
+// ══ NOVA COBRANÇA ══
+function toggleNcForm(){const f=$('nc-form');f.style.display=f.style.display==='none'?'block':'none';}
+
+function handleFiles(e){
+  Array.from(e.target.files).forEach(f=>{
+    if(ncImgs.length>=10)return;
+    const r=new FileReader();
+    r.onload=ev=>{ncImgs.push({name:f.name,dataUrl:ev.target.result});renderNcPreviews();};
+    r.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+function renderNcPreviews(){
+  $('nc-imgs-wrap').innerHTML=ncImgs.map((img,i)=>`
+    <div class="img-thumb" onclick="openLbox('${img.dataUrl}')">
+      <img src="${img.dataUrl}" alt="${img.name}">
+      <button class="img-del" onclick="event.stopPropagation();removeImg(${i})">✕</button>
+    </div>`).join('')+
+    (ncImgs.length<10?`<div class="img-add" onclick="document.getElementById('nc-file').click()"><span class="img-add-ico">＋</span><span>Imagem</span></div>`:'');
+}
+function removeImg(i){ncImgs.splice(i,1);renderNcPreviews();}
+
+async function saveCobranca(){
+  const nota=$('nc-nota').value.trim();
+  if(!nota){toast('⚠ Descreva o conteúdo da cobrança.');return;}
+  const btn=$('btn-save-cobr');
+  btn.textContent='Salvando…';btn.disabled=true;
+  try{
+    setSyncing(true);
+    // Conta cobranças existentes para definir seq
+    const existing=await sbGet('cobrancas',`chamado_id=eq.${currentId}&select=id`);
+    const seq=existing.length+1;
+    const [cobr]=await sbPost('cobrancas',{chamado_id:currentId,seq,data:$('nc-data').value,nota,resposta:$('nc-resp').value});
+    // Salvar imagens
+    if(ncImgs.length){
+      await sbPost('cobranca_imagens',ncImgs.map(img=>({cobranca_id:cobr.id,nome:img.name,data_url:img.dataUrl})));
+    }
+    ncImgs=[];
+    $('nc-imgs-wrap').innerHTML='';
+    $('nc-nota').value='';
+    $('nc-form').style.display='none';
+    await loadCobrancas(currentId);
+    renderKPIs();renderTipos();
+    toast('💬 Cobrança #'+seq+' registrada!');
+  }catch(e){toast('⚠ Erro ao salvar: '+e.message);}finally{btn.textContent='💾 Salvar Cobrança';btn.disabled=false;setSyncing(false);}
+}
+
+// ══ LOJAS ══
+function renderLojas(){
+  $('lojas-grid').innerHTML=LOJAS.map(loja=>{
+    const mine=allChamados.filter(c=>c.loja===loja);
+    const ab=mine.filter(c=>c.status==='Aberto').length;
+    const and=mine.filter(c=>c.status==='Em andamento').length;
+    const res=mine.filter(c=>c.status==='Resolvido').length;
+    const crit=mine.filter(c=>c.prioridade==='Crítica'&&c.status!=='Resolvido').length;
+    const cobr=mine.reduce((a,c)=>a+c.cobr_count,0);
+    const tiCnt={};mine.forEach(c=>tiCnt[c.tipo]=(tiCnt[c.tipo]||0)+1);
+    const top=Object.entries(tiCnt).sort((a,b)=>b[1]-a[1])[0];
+    return `<div class="card" style="margin-bottom:0">
+      <div class="card-hdr">
+        <div><div class="card-ttl">${short(loja)}</div><div class="card-sub">${mine.length} chamado(s)</div></div>
+        ${crit?`<span class="badge b-critico">🚨 ${crit}</span>`:''}
+      </div>
+      <div class="card-bdy">
+        <div class="ms-grid">
+          <div class="ms-card"><div class="ms-val" style="color:var(--amber)">${ab}</div><div class="ms-lbl">Abertos</div></div>
+          <div class="ms-card"><div class="ms-val" style="color:var(--blue)">${and}</div><div class="ms-lbl">Andamento</div></div>
+          <div class="ms-card"><div class="ms-val" style="color:var(--rose)">${cobr}</div><div class="ms-lbl">Cobranças</div></div>
+        </div>
+        ${top?`<div style="font-size:12px;color:var(--ink-60);margin-bottom:10px;">Top: ${chip(top[0])} ${top[1]}x</div>`:''}
+        ${mine.length?`<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="filtrarLoja('${loja}')">Ver chamados →</button>`:'<div style="font-size:12px;color:var(--ink-60)">Sem chamados</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+function filtrarLoja(loja){navTo('chamados');setTimeout(()=>{$('f-loja').value=loja;renderTodos();},100);}
+
+// ══ RELATÓRIO ══
+function renderRelatorio(){
+  const t=allChamados.length, res=allChamados.filter(c=>c.status==='Resolvido').length;
+  const ab=allChamados.filter(c=>c.status==='Aberto').length;
+  const crit=allChamados.filter(c=>c.prioridade==='Crítica'&&c.status!=='Resolvido');
+  const cobT=allChamados.reduce((a,c)=>a+c.cobr_count,0);
+  const taxa=t?Math.round(res/t*100):0;
+  const cnt={};allChamados.forEach(c=>{cnt[c.loja]=(cnt[c.loja]||0)+1;});
+  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const tiCnt={};allChamados.forEach(c=>{tiCnt[c.tipo]=(tiCnt[c.tipo]||0)+1;});
+  const topT=Object.entries(tiCnt).sort((a,b)=>b[1]-a[1])[0];
+  const cobTip={};allChamados.forEach(c=>{if(c.cobr_count)cobTip[c.tipo]=(cobTip[c.tipo]||0)+c.cobr_count;});
+
+  $('relatorio-bdy').innerHTML=`
+    <div style="background:var(--rose-lt);border-left:4px solid var(--rose);padding:15px 17px;border-radius:0 8px 8px 0;margin-bottom:20px;">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--rose-dk);font-weight:700;margin-bottom:6px;">Resumo Executivo — TI</div>
+      <div style="font-size:14px;line-height:1.75;">Foram registrados <strong>${t} chamados</strong> no período, com taxa de resolução de <strong>${taxa}%</strong>. Atualmente <strong>${ab} em aberto</strong> e <strong>${crit.length} crítico(s)</strong>. Total de <strong>${cobT} cobranças ao suporte</strong> via WhatsApp. Tipo mais frequente: <strong>${topT?.[0]||'—'}</strong>.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+      <div style="background:var(--cream);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;">${t}</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Chamados</div></div>
+      <div style="background:var(--amber-lt);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;color:#b87a00;">${ab}</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Em Aberto</div></div>
+      <div style="background:var(--green-lt);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;color:var(--green);">${taxa}%</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Resolução</div></div>
+      <div style="background:var(--rose-lt);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;color:var(--rose);">${cobT}</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Cobranças</div></div>
+    </div>
+    ${crit.length?`<div style="margin-bottom:20px;"><div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--red);">🚨 Chamados Críticos em Aberto</div>${crit.map(c=>`<div style="background:var(--red-lt);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;gap:12px;"><div><strong>${c.id}</strong> — ${short(c.loja)} — ${c.usuario}<br><span style="color:var(--ink-60)">${(c.descricao||'').slice(0,80)}…</span></div><span style="color:var(--rose);font-weight:600;font-size:11px;flex-shrink:0;">💬 ${c.cobr_count}x</span></div>`).join('')}</div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;">
+      <div><div style="font-weight:600;font-size:13px;margin-bottom:10px;">🏪 Ranking por Loja</div>${sorted.slice(0,8).map(([l,n],i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px;"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-60);min-width:20px;">${i+1}.</span><span style="flex:1;">${short(l)}</span><span style="font-family:'DM Mono',monospace;font-size:12px;">${n}</span></div>`).join('')}</div>
+      <div><div style="font-weight:600;font-size:13px;margin-bottom:10px;">💬 Cobranças por Tipo</div>${Object.entries(cobTip).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">${chip(t)}<span style="flex:1;font-size:12px;color:var(--ink-60);">${n} cobrança(s)</span></div>`).join('')||'<div style="font-size:12px;color:var(--ink-60)">Nenhuma cobrança</div>'}</div>
+    </div>
+    <div><div style="font-weight:600;font-size:13px;margin-bottom:10px;">📅 Chamados com Cobranças ao Suporte</div>
+    <div class="timeline">${allChamados.filter(c=>c.cobr_count>0).slice(0,6).map(c=>`<div class="tl-item"><div class="tl-dot ${c.status==='Resolvido'?'ok':c.status==='Aberto'?'':'gray'}"></div><div class="tl-meta">${c.data} · ${short(c.loja)} · ${c.usuario}</div><div class="tl-text">${(c.descricao||'').slice(0,70)}… <span style="color:var(--rose);font-weight:600;">💬 ${c.cobr_count}x suporte</span></div></div>`).join('') || '<div style="font-size:13px;color:var(--ink-60)">Nenhum chamado com cobrança registrada</div>'}</div></div>`;
+}
+function printRelatorio(){window.print();}
+
+// ══ LIGHTBOX ══
+function openLbox(src){$('lbox-img').src=src;$('lbox').classList.add('open');}
+function closeLbox(){$('lbox').classList.remove('open');}
+
+// ══ MODAL HELPERS ══
+function closeOv(id){$(id).classList.remove('open');}
+function ovClose(e,id){if(e.target===$(id))closeOv(id);}
+
+// ══ DETAIL TABS ══
+function switchDTab(i){
+  detTabIdx=i;
+  document.querySelectorAll('.dtab').forEach((t,idx)=>t.classList.toggle('active',idx===i));
+  document.querySelectorAll('.dtab-panel').forEach((p,idx)=>p.classList.toggle('active',idx===i));
+}
+
+// ══ TOAST ══
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ══ INIT ══
+loadAll();
+</script>
+</body>
+</html>
