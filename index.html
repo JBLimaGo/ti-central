@@ -481,7 +481,7 @@ async function sbPatch(table, qs, body){
 }
 
 // ══ CONSTANTES ══
-const LOJAS=['CD (Centro de Distribuição)','Loja 01 — Shopping Iguatemi','Loja 02 — Shopping Eldorado','Loja 03 — Shopping Morumbi','Loja 04 — Shopping Ibirapuera','Loja 05 — Shopping JK','Loja 06 — Shopping Anália Franco','Loja 07 — Shopping Metrô Itaquera','Loja 08 — Shopping Aricanduva','Loja 09 — Shopping ABC'];
+const LOJAS=['CD (Centro de Distribuição)','Mais q Make Shopping Cidade','Mais q Make Via Shopping','Mais q Make BIG','Mais q Make Estação BH','Mais q Make Shopping Del Rey','Mais q Make Shopping Contagem','Mais q Make Itaú','Mais q Make Minas Shopping','Mais q Make Partage'];
 const TIPO_CHIP={'Bug':'c-bug','Erro':'c-erro','Dúvida':'c-duvida','Implementação':'c-impl','Infraestrutura':'c-infra'};
 const TIPO_COR={'Bug':'#E84343','Erro':'#F4A742','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74'};
 const PRIO_COR={'Crítica':'#E84343','Alta':'#F4A742','Média':'#4A78E8','Baixa':'#2DBF7E'};
@@ -491,7 +491,7 @@ let allChamados=[], currentId=null, ncImgs=[], detTabIdx=0;
 
 // ══ UTILS ══
 const $ = id => document.getElementById(id);
-const short = l => l.replace('CD (Centro de Distribuição)','CD').replace(/.*—\s*/,'');
+const short = l => l.replace('CD (Centro de Distribuição)','CD').replace('Mais q Make ','');
 const today = () => new Date().toISOString().slice(0,10);
 const chip = t => `<span class="chip ${TIPO_CHIP[t]||'c-infra'}">${t}</span>`;
 const pBadge = s => {
