@@ -968,402 +968,363 @@ function filtrarLoja(loja){navTo('chamados');setTimeout(()=>{$('f-loja').value=l
 // ══ RELATÓRIO ══
 function renderRelatorio(){
   if(allChamados.length===0){
-    $('relatorio-bdy').innerHTML=`<div style="background:#fff;border-radius:16px;padding:64px 32px;text-align:center;box-shadow:var(--shadow);">
-      <div style="font-size:52px;margin-bottom:20px;">📊</div>
-      <div style="font-size:18px;font-weight:500;margin-bottom:10px;">Relatório vazio</div>
-      <div style="font-size:13px;color:var(--ink-60);max-width:340px;margin:0 auto 28px;">Nenhum chamado registrado ainda. O relatório será gerado automaticamente assim que o primeiro chamado for cadastrado.</div>
-      <button class="btn btn-primary" onclick="navTo('dashboard');setTimeout(openNew,200)">＋ Registrar Primeiro Chamado</button>
-    </div>`;
+    $('relatorio-bdy').innerHTML='<div style="background:#fff;border-radius:16px;padding:64px 32px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:52px;margin-bottom:20px;">📊</div><div style="font-size:18px;font-weight:500;margin-bottom:10px;">Relatório vazio</div><div style="font-size:13px;color:var(--ink-60);max-width:340px;margin:0 auto 28px;">Nenhum chamado registrado ainda. O relatório será gerado assim que o primeiro chamado for cadastrado.</div><button class="btn btn-primary" onclick="navTo(\'dashboard\');setTimeout(openNew,200)">＋ Registrar Primeiro Chamado</button></div>';
     return;
   }
-  const T=allChamados.length||1;
-  const ab=allChamados.filter(c=>c.status==='Aberto').length;
-  const and=allChamados.filter(c=>c.status==='Em andamento').length;
-  const res=allChamados.filter(c=>c.status==='Resolvido').length;
-  const crit=allChamados.filter(c=>c.prioridade==='Crítica'&&c.status!=='Resolvido');
-  const cobT=allChamados.reduce((a,c)=>a+c.cobr_count,0);
-  const taxa=Math.round(res/T*100);
-  const now=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
-  // Tipo counts
-  const tiCnt={};allChamados.forEach(c=>{tiCnt[c.tipo]=(tiCnt[c.tipo]||0)+1;});
-  const tiEntries=Object.entries(tiCnt).sort((a,b)=>b[1]-a[1]);
-  const topTipo=tiEntries[0];
+  const T   = allChamados.length;
+  const ab  = allChamados.filter(c=>c.status==='Aberto').length;
+  const and = allChamados.filter(c=>c.status==='Em andamento').length;
+  const res = allChamados.filter(c=>c.status==='Resolvido').length;
+  const crit= allChamados.filter(c=>c.prioridade==='Crítica'&&c.status!=='Resolvido');
+  const cobT= allChamados.reduce((a,c)=>a+c.cobr_count,0);
+  const taxa= Math.round(res/T*100);
+  const now = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
-  // Loja counts
-  const loCnt={};allChamados.forEach(c=>{loCnt[c.loja]=(loCnt[c.loja]||0)+1;});
-  const loSorted=Object.entries(loCnt).sort((a,b)=>b[1]-a[1]);
-  const topLoja=loSorted[0];
-  const botLoja=loSorted[loSorted.length-1];
+  const tiCnt={};
+  allChamados.forEach(function(c){tiCnt[c.tipo]=(tiCnt[c.tipo]||0)+1;});
+  const tiEntries=Object.entries(tiCnt).sort(function(a,b){return b[1]-a[1];});
+  const topTipo=tiEntries[0]||['—',0];
 
-  // Cobranças por tipo
-  const cobTip={};allChamados.forEach(c=>{if(c.cobr_count)cobTip[c.tipo]=(cobTip[c.tipo]||0)+c.cobr_count;});
+  const loCnt={};
+  allChamados.forEach(function(c){loCnt[c.loja]=(loCnt[c.loja]||0)+1;});
+  const loSorted=Object.entries(loCnt).sort(function(a,b){return b[1]-a[1];});
+  const topLoja=loSorted[0]||['—',0];
+  const botLoja=loSorted[loSorted.length-1]||['—',0];
 
-  // Prioridade counts
+  const cobTip={};
+  allChamados.forEach(function(c){if(c.cobr_count)cobTip[c.tipo]=(cobTip[c.tipo]||0)+c.cobr_count;});
   const priCnt={Crítica:0,Alta:0,Média:0,Baixa:0};
-  allChamados.forEach(c=>{if(priCnt[c.prioridade]!==undefined)priCnt[c.prioridade]++;});
+  allChamados.forEach(function(c){if(priCnt[c.prioridade]!==undefined)priCnt[c.prioridade]++;});
 
-  // ── SVG Donut — Status ──
-  function donut(vals,colors,cx,cy,r,stroke){
-    let total=vals.reduce((a,b)=>a+b,0)||1, angle=-Math.PI/2, parts='';
-    vals.forEach((v,i)=>{
-      const a=(v/total)*2*Math.PI, x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+  // ── Donut SVG ──
+  function buildDonut(vals,colors){
+    var total=vals.reduce(function(a,b){return a+b;},0)||1;
+    var angle=-Math.PI/2, parts='';
+    vals.forEach(function(v,i){
+      if(v===0) return;
+      var a=(v/total)*2*Math.PI;
+      var x1=60+50*Math.cos(angle), y1=60+50*Math.sin(angle);
       angle+=a;
-      const x2=cx+r*Math.cos(angle), y2=cy+r*Math.sin(angle);
-      const lg=a>Math.PI?1:0;
-      parts+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${lg},1 ${x2},${y2} Z" fill="${colors[i]}" opacity=".9"/>`;
+      var x2=60+50*Math.cos(angle), y2=60+50*Math.sin(angle);
+      var lg=a>Math.PI?1:0;
+      parts+='<path d="M60,60 L'+x1+','+y1+' A50,50 0 '+lg+',1 '+x2+','+y2+' Z" fill="'+colors[i]+'" opacity=".9"/>';
     });
-    return `<g>${parts}<circle cx="${cx}" cy="${cy}" r="${r*0.58}" fill="white"/></g>`;
+    return '<svg width="120" height="120" viewBox="0 0 120 120"><g>'+parts+'<circle cx="60" cy="60" r="29" fill="white"/></g></svg>';
   }
 
-  // ── SVG Bar — Lojas ──
-  function barChart(entries,maxW,barH,gap){
-    const max=entries[0]?.[1]||1;
-    return entries.slice(0,10).map(([l,n],i)=>{
-      const w=Math.round((n/max)*maxW);
-      const y=i*(barH+gap);
-      const label=short(l);
-      const cor=i===0?'#E8436A':i<3?'#F4A742':'#4A78E8';
-      return `<g transform="translate(0,${y})">
-        <text x="0" y="${barH/2+4}" font-size="10" fill="#7A6A74" font-family="DM Sans,sans-serif">${label}</text>
-        <rect x="110" y="0" width="${w}" height="${barH}" rx="4" fill="${cor}" opacity=".85"/>
-        <text x="${110+w+5}" y="${barH/2+4}" font-size="10" font-weight="600" fill="#1A1018" font-family="DM Mono,monospace">${n}</text>
-      </g>`;
-    }).join('');
+  // ── Gauge SVG ──
+  function buildGauge(pct){
+    var r=52,cx=70,cy=70;
+    var startA=-Math.PI*0.8, endA=Math.PI*0.8;
+    var filled=startA+(endA-startA)*(pct/100);
+    var x1=cx+r*Math.cos(startA), y1=cy+r*Math.sin(startA);
+    var x2=cx+r*Math.cos(endA),   y2=cy+r*Math.sin(endA);
+    var fx=cx+r*Math.cos(filled),  fy=cy+r*Math.sin(filled);
+    var lg1=(endA-startA)>Math.PI?1:0;
+    var lg2=(filled-startA)>Math.PI?1:0;
+    var cor=pct>=70?'#2DBF7E':pct>=40?'#F4A742':'#E84343';
+    var label=pct>=70?'Saudável':pct>=40?'Atenção':'Crítico';
+    return '<svg width="140" height="100" viewBox="0 0 140 100">'
+      +'<path d="M'+x1+','+y1+' A'+r+','+r+' 0 '+lg1+',1 '+x2+','+y2+'" fill="none" stroke="#EDE8EC" stroke-width="10" stroke-linecap="round"/>'
+      +'<path d="M'+x1+','+y1+' A'+r+','+r+' 0 '+lg2+',1 '+fx+','+fy+'" fill="none" stroke="'+cor+'" stroke-width="10" stroke-linecap="round"/>'
+      +'<text x="'+cx+'" y="'+(cy+8)+'" text-anchor="middle" font-size="20" font-weight="300" fill="#1A1018" font-family="DM Sans,sans-serif">'+pct+'%</text>'
+      +'<text x="'+cx+'" y="'+(cy+22)+'" text-anchor="middle" font-size="9" fill="#7A6A74" font-family="DM Sans,sans-serif">'+label+'</text>'
+      +'</svg>';
   }
 
-  // ── SVG Horizontal bar — Tipos ──
-  function tipoBar(entries,total){
-    const CORS={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74','Erro':'#F4A742'};
-    return entries.map(([t,n],i)=>{
-      const pct=Math.round(n/total*100);
-      const cor=CORS[t]||'#ccc';
-      const y=i*28;
-      return `<g transform="translate(0,${y})">
-        <rect x="0" y="4" width="160" height="10" rx="5" fill="#EDE8EC"/>
-        <rect x="0" y="4" width="${Math.round(160*pct/100)}" height="10" rx="5" fill="${cor}"/>
-        <text x="0" y="30" font-size="10" fill="#1A1018" font-family="DM Sans,sans-serif">${t}</text>
-        <text x="165" y="14" font-size="10" font-weight="600" fill="${cor}" font-family="DM Mono,monospace">${pct}%</text>
-      </g>`;
-    }).join('');
+  // ── Bar Lojas SVG ──
+  function buildBars(entries){
+    var max=entries[0]?entries[0][1]:1;
+    var rows='';
+    entries.slice(0,10).forEach(function(e,i){
+      var n=e[1], lbl=short(e[0]);
+      var w=Math.round((n/max)*155);
+      var y=i*26;
+      var cor=i===0?'#E8436A':i<3?'#F4A742':'#4A78E8';
+      rows+='<g transform="translate(0,'+y+')">'
+        +'<text x="0" y="17" font-size="10" fill="#7A6A74" font-family="DM Sans,sans-serif">'+lbl+'</text>'
+        +'<rect x="110" y="4" width="'+w+'" height="14" rx="4" fill="'+cor+'" opacity=".85"/>'
+        +'<text x="'+(110+w+5)+'" y="15" font-size="10" font-weight="600" fill="#1A1018" font-family="DM Mono,monospace">'+n+'</text>'
+        +'</g>';
+    });
+    return '<svg width="100%" height="'+(entries.slice(0,10).length*26)+'" viewBox="0 0 310 '+(entries.slice(0,10).length*26)+'">'+rows+'</svg>';
   }
 
-  // ── SVG Gauge — Taxa Resolução ──
-  function gauge(pct){
-    const r=52, cx=70, cy=70;
-    const startA=-Math.PI*0.8, endA=Math.PI*0.8, total=endA-startA;
-    const filled=startA+total*(pct/100);
-    const x1=cx+r*Math.cos(startA), y1=cy+r*Math.sin(startA);
-    const x2=cx+r*Math.cos(endA),   y2=cy+r*Math.sin(endA);
-    const fx=cx+r*Math.cos(filled),  fy=cy+r*Math.sin(filled);
-    const lg1=(endA-startA)>Math.PI?1:0;
-    const lg2=(filled-startA)>Math.PI?1:0;
-    const cor=pct>=70?'#2DBF7E':pct>=40?'#F4A742':'#E84343';
-    return `<svg width="140" height="100" viewBox="0 0 140 100">
-      <path d="M${x1},${y1} A${r},${r} 0 ${lg1},1 ${x2},${y2}" fill="none" stroke="#EDE8EC" stroke-width="10" stroke-linecap="round"/>
-      <path d="M${x1},${y1} A${r},${r} 0 ${lg2},1 ${fx},${fy}" fill="none" stroke="${cor}" stroke-width="10" stroke-linecap="round"/>
-      <text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="20" font-weight="300" fill="#1A1018" font-family="DM Sans,sans-serif">${pct}%</text>
-      <text x="${cx}" y="${cy+22}" text-anchor="middle" font-size="9" fill="#7A6A74" font-family="DM Sans,sans-serif">RESOLUÇÃO</text>
-    </svg>`;
+  // ── Bar Tipos SVG ──
+  function buildTipoBars(entries){
+    var CORS={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74','Erro':'#F4A742'};
+    var rows='';
+    entries.forEach(function(e,i){
+      var t=e[0], n=e[1];
+      var pct=Math.round(n/T*100);
+      var cor=CORS[t]||'#ccc';
+      var y=i*32;
+      rows+='<g transform="translate(0,'+y+')">'
+        +'<rect x="0" y="4" width="160" height="10" rx="5" fill="#EDE8EC"/>'
+        +'<rect x="0" y="4" width="'+Math.round(160*pct/100)+'" height="10" rx="5" fill="'+cor+'"/>'
+        +'<text x="0" y="28" font-size="10" fill="#1A1018" font-family="DM Sans,sans-serif">'+t+'</text>'
+        +'<text x="165" y="14" font-size="10" font-weight="600" fill="'+cor+'" font-family="DM Mono,monospace">'+pct+'%</text>'
+        +'</g>';
+    });
+    return '<svg width="100%" height="'+(entries.length*32)+'" viewBox="0 0 230 '+(entries.length*32)+'">'+rows+'</svg>';
   }
 
-  const statusDonut=donut([ab,and,res],['#F4A742','#4A78E8','#2DBF7E'],60,60,50,8);
-  const loBarH=loSorted.length;
-  const tiBarH=tiEntries.length;
+  // ── Prioridade bars ──
+  var PCOR={Crítica:'#E84343',Alta:'#F4A742',Média:'#4A78E8',Baixa:'#2DBF7E'};
+  var priHTML='';
+  Object.entries(priCnt).forEach(function(e){
+    var p=e[0], n=e[1];
+    var pct=Math.round(n/T*100);
+    priHTML+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">'
+      +'<span style="font-size:12px;min-width:62px;font-weight:'+(p==='Crítica'?'700':'400')+';color:'+(p==='Crítica'?'#E84343':'#1A1018')+'">'+p+'</span>'
+      +'<div style="flex:1;height:7px;background:#EDE8EC;border-radius:10px;">'
+        +'<div style="height:100%;border-radius:10px;background:'+PCOR[p]+';width:'+pct+'%;"></div>'
+      +'</div>'
+      +'<span style="font-family:DM Mono,monospace;font-size:11px;font-weight:600;min-width:22px;text-align:right;">'+n+'</span>'
+      +'<span style="font-size:10px;color:#7A6A74;min-width:28px;">'+pct+'%</span>'
+      +'</div>';
+  });
 
-  $('relatorio-bdy').innerHTML=`
-  <style>
-    .rpt-hero{background:linear-gradient(135deg,#1A1018 0%,#2d1a28 60%,#3a1a2e 100%);color:#fff;border-radius:16px;padding:32px 36px;margin-bottom:24px;position:relative;overflow:hidden;}
-    .rpt-hero::before{content:'';position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:rgba(232,67,106,.12);pointer-events:none;}
-    .rpt-hero::after{content:'';position:absolute;right:40px;bottom:-60px;width:140px;height:140px;border-radius:50%;background:rgba(74,120,232,.1);pointer-events:none;}
-    .rpt-eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px;font-family:'DM Mono',monospace;}
-    .rpt-htitle{font-size:26px;font-weight:300;margin-bottom:6px;letter-spacing:-.5px;}
-    .rpt-hdate{font-size:13px;color:rgba(255,255,255,.45);}
-    .rpt-executive{font-size:14px;line-height:1.8;color:rgba(255,255,255,.8);margin-top:16px;max-width:640px;border-top:1px solid rgba(255,255,255,.1);padding-top:16px;}
-    .rpt-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
-    .rpt-kpi-card{background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 2px 12px rgba(26,16,24,.07);border-bottom:3px solid;text-align:center;position:relative;overflow:hidden;}
-    .rpt-kpi-val{font-size:36px;font-weight:300;letter-spacing:-1.5px;line-height:1;}
-    .rpt-kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#7A6A74;font-weight:600;margin-top:6px;}
-    .rpt-kpi-sub{font-size:11px;margin-top:4px;}
-    .rpt-kpi-ico{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:30px;opacity:.07;}
-    .rpt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
-    .rpt-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
-    .rpt-card{background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 12px rgba(26,16,24,.07);}
-    .rpt-section-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#7A6A74;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-    .rpt-section-lbl::after{content:'';flex:1;height:1px;background:#EDE8EC;}
-    .rpt-alert{border-radius:10px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;}
-    .rpt-alert.red{background:#FDEAEA;border-left:4px solid #E84343;}
-    .rpt-alert.amber{background:#FEF3E2;border-left:4px solid #F4A742;}
-    .rpt-alert-id{font-family:'DM Mono',monospace;font-size:11px;color:#7A6A74;flex-shrink:0;margin-top:1px;}
-    .rpt-alert-body{font-size:13px;flex:1;}
-    .rpt-alert-cobr{font-size:11px;font-weight:700;color:#E84343;flex-shrink:0;}
-    .rpt-rank-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #EDE8EC;}
-    .rpt-rank-row:last-child{border-bottom:none;}
-    .rpt-rank-n{font-family:'DM Mono',monospace;font-size:10px;color:#7A6A74;width:16px;flex-shrink:0;}
-    .rpt-rank-name{font-size:13px;flex:1;}
-    .rpt-rank-bar{height:5px;border-radius:10px;background:#EDE8EC;flex:1;max-width:80px;}
-    .rpt-rank-bar-fill{height:100%;border-radius:10px;background:#E8436A;}
-    .rpt-rank-cnt{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;min-width:22px;text-align:right;}
-    .rpt-tbl{width:100%;border-collapse:collapse;font-size:12px;}
-    .rpt-tbl th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;}
-    .rpt-tbl td{padding:8px 10px;border-bottom:1px solid #EDE8EC;vertical-align:top;}
-    .rpt-tbl tr:last-child td{border-bottom:none;}
-    .rpt-chip{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;}
-    .rpt-insight{background:linear-gradient(135deg,#EBF0FD,#F2EAFA);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.7;color:#1A1018;}
-    .rpt-insight strong{color:#4A78E8;}
-    @media(max-width:768px){
-      .rpt-kpi-row{grid-template-columns:repeat(3,1fr);}
-      .rpt-grid2,.rpt-grid3{grid-template-columns:1fr;}
-      .rpt-htitle{font-size:20px;}
-    }
-    @media print{
-      .rpt-kpi-row{grid-template-columns:repeat(5,1fr)!important;}
-      .rpt-grid2{grid-template-columns:1fr 1fr!important;}
-      .rpt-grid3{grid-template-columns:1fr 1fr 1fr!important;}
-    }
-  </style>
+  // ── Cobranças por tipo ──
+  var TCHIP={'Bug':'c-bug','Dúvida':'c-duvida','Implementação':'c-impl','Infraestrutura':'c-infra','Erro':'c-erro'};
+  var TCOR={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74','Erro':'#F4A742'};
+  var cobTipEntries=Object.entries(cobTip).sort(function(a,b){return b[1]-a[1];});
+  var totCob=cobTipEntries.reduce(function(a,e){return a+e[1];},0)||1;
+  var cobrHTML='';
+  if(cobTipEntries.length===0){
+    cobrHTML='<div style="font-size:12px;color:#7A6A74;text-align:center;padding:16px;">Nenhuma cobrança registrada</div>';
+  } else {
+    cobTipEntries.forEach(function(e){
+      var t=e[0], n=e[1];
+      var pct=Math.round(n/totCob*100);
+      cobrHTML+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+        +'<span class="chip '+(TCHIP[t]||'c-infra')+'" style="font-size:10px;padding:2px 7px;">'+t+'</span>'
+        +'<div style="flex:1;height:5px;background:#EDE8EC;border-radius:10px;">'
+          +'<div style="height:100%;border-radius:10px;background:'+(TCOR[t]||'#ccc')+';width:'+pct+'%;"></div>'
+        +'</div>'
+        +'<span style="font-family:DM Mono,monospace;font-size:11px;font-weight:600;">'+n+'x</span>'
+        +'</div>';
+    });
+  }
 
-  <!-- HERO HEADER -->
-  <div class="rpt-hero">
-    <div class="rpt-eyebrow">TI Central · Mais q Make</div>
-    <div class="rpt-htitle">Relatório de Chamados e Suporte</div>
-    <div class="rpt-hdate">Gerado em ${now} · ${T} chamados registrados</div>
-    <div class="rpt-executive">
-      No período analisado foram registrados <strong>${T} chamados</strong> distribuídos entre as 10 unidades.
-      A taxa de resolução está em <strong>${taxa}%</strong>, com <strong>${ab} chamados em aberto</strong>
-      e <strong>${crit.length} de prioridade crítica</strong>.
-      Foram realizadas <strong>${cobT} cobranças ao suporte</strong> via WhatsApp.
-      ${topLoja?`A unidade <strong>${short(topLoja[0])}</strong> lidera o ranking com ${topLoja[1]} ocorrências.`:''}
-      O tipo de problema mais frequente é <strong>${topTipo?.[0]||'—'}</strong>.
-    </div>
-    <div style="margin-top:20px;" class="rpt-noprint">
-      <button onclick="window.print()" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);padding:9px 20px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">🖨 Imprimir Relatório</button>
-    </div>
-  </div>
+  // ── Críticos ──
+  var critHTML='';
+  if(crit.length===0){
+    critHTML='<div style="background:linear-gradient(135deg,#E2F8EE,#f0fdf7);border-radius:12px;padding:20px 22px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">'
+      +'<div style="font-size:32px;">✅</div>'
+      +'<div><div style="font-weight:600;font-size:14px;color:#1a8a57;">Nenhum chamado crítico em aberto</div>'
+      +'<div style="font-size:12px;color:#7A6A74;margin-top:2px;">Todas as ocorrências críticas foram resolvidas.</div></div>'
+      +'</div>';
+  } else {
+    critHTML='<div style="background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 12px rgba(26,16,24,.07);margin-bottom:16px;">'
+      +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#E84343;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;">🚨 Chamados Críticos em Aberto<span style="flex:1;height:1px;background:#EDE8EC;display:block;"></span></div>';
+    crit.forEach(function(c){
+      critHTML+='<div style="background:#FDEAEA;border-left:4px solid #E84343;border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;">'
+        +'<div style="font-family:DM Mono,monospace;font-size:11px;color:#7A6A74;flex-shrink:0;margin-top:1px;">'+c.id+'</div>'
+        +'<div style="flex:1;">'
+          +'<div style="font-weight:600;font-size:13px;margin-bottom:2px;">'+(c.titulo||'Sem título')+'</div>'
+          +'<div style="font-size:12px;color:#7A6A74;">'+short(c.loja)+' · '+c.usuario+' · '+c.sistema+'</div>'
+          +'<div style="font-size:12px;margin-top:4px;">'+(c.descricao||'').slice(0,100)+(c.descricao&&c.descricao.length>100?'…':'')+'</div>'
+        +'</div>'
+        +'<div style="font-size:11px;font-weight:700;color:#E84343;flex-shrink:0;">💬 '+c.cobr_count+'x</div>'
+        +'</div>';
+    });
+    critHTML+='</div>';
+  }
 
-  <!-- KPI ROW -->
-  <div class="rpt-kpi-row">
-    <div class="rpt-kpi-card" style="border-bottom-color:#E8436A;">
-      <div class="rpt-kpi-val" style="color:#E8436A;">${T}</div>
-      <div class="rpt-kpi-lbl">Total</div>
-      <div class="rpt-kpi-sub" style="color:#7A6A74;">chamados</div>
-      <span class="rpt-kpi-ico">🎫</span>
-    </div>
-    <div class="rpt-kpi-card" style="border-bottom-color:#F4A742;">
-      <div class="rpt-kpi-val" style="color:#F4A742;">${ab}</div>
-      <div class="rpt-kpi-lbl">Abertos</div>
-      <div class="rpt-kpi-sub" style="color:${ab>0?'#F4A742':'#2DBF7E'}">${ab>0?'⚠ Atenção':'✓ Ok'}</div>
-      <span class="rpt-kpi-ico">🔓</span>
-    </div>
-    <div class="rpt-kpi-card" style="border-bottom-color:#4A78E8;">
-      <div class="rpt-kpi-val" style="color:#4A78E8;">${and}</div>
-      <div class="rpt-kpi-lbl">Andamento</div>
-      <div class="rpt-kpi-sub" style="color:#7A6A74;">em tratativa</div>
-      <span class="rpt-kpi-ico">🔧</span>
-    </div>
-    <div class="rpt-kpi-card" style="border-bottom-color:#2DBF7E;">
-      <div class="rpt-kpi-val" style="color:#2DBF7E;">${res}</div>
-      <div class="rpt-kpi-lbl">Resolvidos</div>
-      <div class="rpt-kpi-sub" style="color:#2DBF7E;">✓ ${taxa}% do total</div>
-      <span class="rpt-kpi-ico">✅</span>
-    </div>
-    <div class="rpt-kpi-card" style="border-bottom-color:#9B59D0;">
-      <div class="rpt-kpi-val" style="color:#9B59D0;">${cobT}</div>
-      <div class="rpt-kpi-lbl">Cobranças</div>
-      <div class="rpt-kpi-sub" style="color:#7A6A74;">ao suporte</div>
-      <span class="rpt-kpi-ico">💬</span>
-    </div>
-  </div>
+  // ── Tabela abertos ──
+  var tblHTML2='';
+  var abertos=allChamados.filter(function(c){return c.status==='Aberto';});
+  if(abertos.length>0){
+    tblHTML2='<div style="background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 12px rgba(26,16,24,.07);margin-bottom:16px;overflow-x:auto;">'
+      +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#7A6A74;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;">Chamados em Aberto — Detalhe<span style="flex:1;height:1px;background:#EDE8EC;display:block;"></span></div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+      +'<thead><tr>'
+      +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;">ID</th>'
+      +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;">Título</th>'
+      +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;">Loja</th>'
+      +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;">Tipo</th>'
+      +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;">Prioridade</th>'
+      +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;">Cobranças</th>'
+      +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;">Data</th>'
+      +'</tr></thead><tbody>';
+    abertos.forEach(function(c){
+      tblHTML2+='<tr>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-family:DM Mono,monospace;font-size:11px;color:#7A6A74;">'+c.id+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-weight:500;max-width:180px;">'+(c.titulo||'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-size:12px;">'+short(c.loja)+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;">'+chip(c.tipo)+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;"><span style="font-size:11px;font-weight:700;color:'+(PCOR[c.prioridade]||'#ccc')+'">'+c.prioridade+'</span></td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;text-align:center;">'+(c.cobr_count?'<span style="font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:#E8436A;">💬 '+c.cobr_count+'</span>':'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-size:11px;color:#7A6A74;">'+(c.data_abertura||c.data||'—')+'</td>'
+        +'</tr>';
+    });
+    tblHTML2+='</tbody></table></div>';
+  }
 
-  <!-- ROW 1: Gauge + Donut Status + Tipos -->
-  <div class="rpt-grid3" style="margin-bottom:16px;">
+  // ── Ranking ──
+  var maxLo=loSorted[0]?loSorted[0][1]:1;
+  var rankHTML='';
+  loSorted.forEach(function(e,i){
+    var l=e[0], n=e[1];
+    var pct=Math.round(n/maxLo*100);
+    rankHTML+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #EDE8EC;">'
+      +'<span style="font-family:DM Mono,monospace;font-size:10px;color:#7A6A74;width:16px;">'+String(i+1).padStart(2,'0')+'</span>'
+      +'<span style="font-size:13px;flex:1;">'+short(l)+'</span>'
+      +'<div style="width:80px;height:5px;background:#EDE8EC;border-radius:10px;flex-shrink:0;">'
+        +'<div style="height:100%;border-radius:10px;background:#E8436A;width:'+pct+'%;"></div>'
+      +'</div>'
+      +'<span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;min-width:20px;text-align:right;">'+n+'</span>'
+      +(i===0?'<span style="font-size:10px;background:#FDEAEA;color:#E84343;padding:1px 6px;border-radius:20px;font-weight:700;">↑</span>':'')
+      +(n===1?'<span style="font-size:10px;background:#E2F8EE;color:#2DBF7E;padding:1px 6px;border-radius:20px;font-weight:700;">✓</span>':'')
+      +'</div>';
+  });
 
-    <!-- Gauge taxa resolução -->
-    <div class="rpt-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-      <div class="rpt-section-lbl" style="width:100%;">Taxa de Resolução</div>
-      ${gauge(taxa)}
-      <div style="font-size:12px;color:#7A6A74;text-align:center;margin-top:4px;">
-        ${taxa>=70?'🟢 Desempenho saudável':taxa>=40?'🟡 Atenção necessária':'🔴 Nível crítico'}
-      </div>
-    </div>
+  // ── Histórico cobranças ──
+  var histHTML='';
+  var SCOR={Aberto:'#F4A742','Em andamento':'#4A78E8',Resolvido:'#2DBF7E'};
+  var comCobr=allChamados.filter(function(c){return c.cobr_count>0;}).slice(0,6);
+  if(comCobr.length===0){
+    histHTML='<div style="font-size:12px;color:#7A6A74;text-align:center;padding:20px;">Nenhum chamado com cobranças ao suporte</div>';
+  } else {
+    comCobr.forEach(function(c){
+      histHTML+='<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #EDE8EC;align-items:flex-start;">'
+        +'<div style="width:7px;height:7px;border-radius:50%;background:'+(SCOR[c.status]||'#ccc')+';margin-top:4px;flex-shrink:0;"></div>'
+        +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.titulo||c.id)+'</div>'
+          +'<div style="font-size:11px;color:#7A6A74;">'+short(c.loja)+' · '+c.data+'</div>'
+        +'</div>'
+        +'<span style="font-family:DM Mono,monospace;font-size:11px;color:#E8436A;font-weight:700;flex-shrink:0;">💬 '+c.cobr_count+'x</span>'
+        +'</div>';
+    });
+  }
 
-    <!-- Donut Status -->
-    <div class="rpt-card">
-      <div class="rpt-section-lbl">Status dos Chamados</div>
-      <div style="display:flex;align-items:center;gap:16px;">
-        <svg width="120" height="120" viewBox="0 0 120 120">${statusDonut}</svg>
-        <div style="flex:1;">
-          ${[['Aberto','#F4A742',ab],['Andamento','#4A78E8',and],['Resolvido','#2DBF7E',res]].map(([l,c,n])=>`
-          <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
-            <div style="width:9px;height:9px;border-radius:3px;background:${c};flex-shrink:0;"></div>
-            <span style="font-size:12px;flex:1;">${l}</span>
-            <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;">${n}</span>
-          </div>`).join('')}
-        </div>
-      </div>
-    </div>
+  // ── Insight ──
+  var insightTxt = taxa>=70
+    ? 'A operação de TI está com desempenho <strong>saudável</strong>. Taxa de resolução de <strong>'+taxa+'%</strong> indica boa capacidade de resposta.'
+    : 'A taxa de resolução de <strong>'+taxa+'%</strong> está abaixo do ideal. Recomenda-se <strong>priorizar os '+ab+' chamados em aberto</strong>.';
+  if(cobT>0) insightTxt+=' Foram realizadas <strong>'+cobT+' cobranças ao suporte</strong> via WhatsApp.';
+  if(botLoja&&botLoja[1]===1) insightTxt+=' A unidade <strong>'+short(botLoja[0])+'</strong> é a mais estável, com apenas 1 chamado.';
 
-    <!-- Tipos -->
-    <div class="rpt-card">
-      <div class="rpt-section-lbl">Tipos de Chamado</div>
-      <svg width="100%" height="${tiEntries.length*28}" viewBox="0 0 230 ${tiEntries.length*28}">
-        ${tipoBar(tiEntries,T)}
-      </svg>
-    </div>
-  </div>
+  // ── Monta HTML final ──
+  var html='';
 
-  <!-- ROW 2: Bar Lojas + Prioridades -->
-  <div class="rpt-grid2" style="margin-bottom:16px;">
+  // CSS do relatório
+  html+='<style>'
+    +'.rpt-hero{background:linear-gradient(135deg,#1A1018 0%,#2d1a28 60%,#3a1a2e 100%);color:#fff;border-radius:16px;padding:32px 36px;margin-bottom:24px;position:relative;overflow:hidden;}'
+    +'.rpt-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}'
+    +'.rpt-kpi-card{background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 2px 12px rgba(26,16,24,.07);border-bottom:3px solid;text-align:center;position:relative;overflow:hidden;}'
+    +'.rpt-kpi-val{font-size:36px;font-weight:300;letter-spacing:-1.5px;line-height:1;}'
+    +'.rpt-kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#7A6A74;font-weight:600;margin-top:6px;}'
+    +'.rpt-kpi-ico{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:30px;opacity:.07;}'
+    +'.rpt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}'
+    +'.rpt-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}'
+    +'.rpt-card{background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 12px rgba(26,16,24,.07);}'
+    +'.rpt-slbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#7A6A74;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}'
+    +'.rpt-slbl::after{content:"";flex:1;height:1px;background:#EDE8EC;}'
+    +'@media(max-width:900px){.rpt-kpi-row{grid-template-columns:repeat(3,1fr);}.rpt-grid2,.rpt-grid3{grid-template-columns:1fr;}}'
+    +'@media(max-width:500px){.rpt-kpi-row{grid-template-columns:repeat(2,1fr);}}'
+    +'@media print{'
+      +'@page{size:A4;margin:15mm 12mm;}'
+      +'.sidebar,.topbar,.sidebar-overlay,.toast,.rpt-noprint{display:none!important;}'
+      +'.main{margin-left:0!important;}.content-wrap{padding:0!important;overflow:visible!important;}'
+      +'.panel{display:none!important;}#panel-relatorio{display:block!important;}'
+      +'.rpt-kpi-row{grid-template-columns:repeat(5,1fr)!important;}'
+      +'.rpt-grid2{grid-template-columns:1fr 1fr!important;}'
+      +'.rpt-grid3{grid-template-columns:1fr 1fr 1fr!important;}'
+      +'.rpt-hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+      +'.rpt-kpi-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid;}'
+    +'}'
+    +'</style>';
 
-    <!-- Bar lojas -->
-    <div class="rpt-card">
-      <div class="rpt-section-lbl">Chamados por Unidade</div>
-      <svg width="100%" height="${loSorted.length*26}" viewBox="0 0 310 ${loSorted.length*26}">
-        ${barChart(loSorted,165,18,8)}
-      </svg>
-    </div>
+  // HERO
+  html+='<div class="rpt-hero">'
+    +'<div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px;font-family:DM Mono,monospace;">TI Central · Mais q Make</div>'
+    +'<div style="font-size:26px;font-weight:300;margin-bottom:6px;letter-spacing:-.5px;">Relatório de Chamados e Suporte</div>'
+    +'<div style="font-size:13px;color:rgba(255,255,255,.45);">Gerado em '+now+' · '+T+' chamados registrados</div>'
+    +'<div style="font-size:14px;line-height:1.8;color:rgba(255,255,255,.8);margin-top:16px;max-width:640px;border-top:1px solid rgba(255,255,255,.1);padding-top:16px;">'
+      +'No período foram registrados <strong>'+T+' chamados</strong> com taxa de resolução de <strong>'+taxa+'%</strong>. '
+      +'<strong>'+ab+' em aberto</strong> e <strong>'+crit.length+' crítico(s)</strong>. '
+      +'<strong>'+cobT+' cobranças ao suporte</strong> via WhatsApp. '
+      +(topLoja[0]!=='—'?'Unidade <strong>'+short(topLoja[0])+'</strong> lidera com '+topLoja[1]+' ocorrências. ':'')
+      +'Tipo mais frequente: <strong>'+topTipo[0]+'</strong>.'
+    +'</div>'
+    +'<div style="margin-top:20px;" class="rpt-noprint">'
+      +'<button onclick="window.print()" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);padding:9px 20px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;">🖨 Imprimir Relatório</button>'
+    +'</div>'
+    +'</div>';
 
-    <!-- Prioridades + Cobranças por tipo -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div class="rpt-card">
-        <div class="rpt-section-lbl">Distribuição por Prioridade</div>
-        ${Object.entries(priCnt).map(([p,n])=>{
-          const PCOR={Crítica:'#E84343',Alta:'#F4A742',Média:'#4A78E8',Baixa:'#2DBF7E'};
-          const pct=Math.round(n/T*100);
-          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
-            <span style="font-size:12px;min-width:60px;font-weight:${p==='Crítica'?'600':'400'};color:${p==='Crítica'?'#E84343':'#1A1018'}">${p}</span>
-            <div style="flex:1;height:7px;background:#EDE8EC;border-radius:10px;">
-              <div style="height:100%;border-radius:10px;background:${PCOR[p]};width:${pct}%;transition:width .4s;"></div>
-            </div>
-            <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;min-width:28px;text-align:right;">${n}</span>
-            <span style="font-size:10px;color:#7A6A74;min-width:30px;">${pct}%</span>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="rpt-card">
-        <div class="rpt-section-lbl">Cobranças ao Suporte por Tipo</div>
-        ${Object.entries(cobTip).length
-          ? Object.entries(cobTip).sort((a,b)=>b[1]-a[1]).map(([t,n])=>{
-              const TCOR={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74','Erro':'#F4A742'};
-              const TCHIP={'Bug':'c-bug','Dúvida':'c-duvida','Implementação':'c-impl','Infraestrutura':'c-infra','Erro':'c-erro'};
-              const totCob=Object.values(cobTip).reduce((a,b)=>a+b,0)||1;
-              const pct=Math.round(n/totCob*100);
-              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span class="chip ${TCHIP[t]||'c-infra'}" style="font-size:10px;padding:2px 7px;">${t}</span>
-                <div style="flex:1;height:5px;background:#EDE8EC;border-radius:10px;">
-                  <div style="height:100%;border-radius:10px;background:${TCOR[t]||'#ccc'};width:${pct}%;"></div>
-                </div>
-                <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;">${n}x</span>
-              </div>`;
-            }).join('')
-          : '<div style="font-size:12px;color:#7A6A74;text-align:center;padding:16px;">Nenhuma cobrança registrada</div>'
-        }
-      </div>
-    </div>
-  </div>
+  // KPIs
+  html+='<div class="rpt-kpi-row">'
+    +'<div class="rpt-kpi-card" style="border-bottom-color:#E8436A;"><div class="rpt-kpi-val" style="color:#E8436A;">'+T+'</div><div class="rpt-kpi-lbl">Total</div><span class="rpt-kpi-ico">🎫</span></div>'
+    +'<div class="rpt-kpi-card" style="border-bottom-color:#F4A742;"><div class="rpt-kpi-val" style="color:#F4A742;">'+ab+'</div><div class="rpt-kpi-lbl">Abertos</div><span class="rpt-kpi-ico">🔓</span></div>'
+    +'<div class="rpt-kpi-card" style="border-bottom-color:#4A78E8;"><div class="rpt-kpi-val" style="color:#4A78E8;">'+and+'</div><div class="rpt-kpi-lbl">Andamento</div><span class="rpt-kpi-ico">🔧</span></div>'
+    +'<div class="rpt-kpi-card" style="border-bottom-color:#2DBF7E;"><div class="rpt-kpi-val" style="color:#2DBF7E;">'+res+'</div><div class="rpt-kpi-lbl">Resolvidos · '+taxa+'%</div><span class="rpt-kpi-ico">✅</span></div>'
+    +'<div class="rpt-kpi-card" style="border-bottom-color:#9B59D0;"><div class="rpt-kpi-val" style="color:#9B59D0;">'+cobT+'</div><div class="rpt-kpi-lbl">Cobranças</div><span class="rpt-kpi-ico">💬</span></div>'
+    +'</div>';
 
-  <!-- ALERTAS CRÍTICOS -->
-  ${crit.length ? `
-  <div class="rpt-card" style="margin-bottom:16px;">
-    <div class="rpt-section-lbl" style="color:#E84343;">🚨 Chamados Críticos em Aberto</div>
-    ${crit.map(c=>`
-    <div class="rpt-alert red">
-      <div class="rpt-alert-id">${c.id}</div>
-      <div class="rpt-alert-body">
-        <div style="font-weight:600;margin-bottom:2px;">${c.titulo||'Sem título'}</div>
-        <div style="color:#7A6A74;font-size:12px;">${short(c.loja)} · ${c.usuario} · ${c.sistema}</div>
-        <div style="font-size:12px;margin-top:4px;">${(c.descricao||'').slice(0,100)}${(c.descricao||'').length>100?'…':''}</div>
-      </div>
-      <div class="rpt-alert-cobr">💬 ${c.cobr_count}x</div>
-    </div>`).join('')}
-  </div>` : `
-  <div class="rpt-card" style="margin-bottom:16px;background:linear-gradient(135deg,#E2F8EE,#f0fdf7);">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="font-size:28px;">✅</div>
-      <div><div style="font-weight:600;font-size:14px;color:#1a8a57;">Nenhum chamado crítico em aberto</div><div style="font-size:12px;color:#7A6A74;margin-top:2px;">Todas as ocorrências críticas foram resolvidas.</div></div>
-    </div>
-  </div>`}
+  // ROW 1: Gauge + Donut + Tipos
+  html+='<div class="rpt-grid3">'
+    // Gauge
+    +'<div class="rpt-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">'
+      +'<div class="rpt-slbl" style="width:100%;">Taxa de Resolução</div>'
+      +buildGauge(taxa)
+      +'<div style="font-size:12px;color:#7A6A74;text-align:center;margin-top:6px;">'+(taxa>=70?'🟢 Desempenho saudável':taxa>=40?'🟡 Atenção necessária':'🔴 Nível crítico')+'</div>'
+    +'</div>'
+    // Donut status
+    +'<div class="rpt-card">'
+      +'<div class="rpt-slbl">Status dos Chamados</div>'
+      +'<div style="display:flex;align-items:center;gap:16px;">'
+        +buildDonut([ab,and,res],['#F4A742','#4A78E8','#2DBF7E'])
+        +'<div style="flex:1;">'
+          +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><div style="width:9px;height:9px;border-radius:3px;background:#F4A742;"></div><span style="font-size:12px;flex:1;">Aberto</span><span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;">'+ab+'</span></div>'
+          +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;"><div style="width:9px;height:9px;border-radius:3px;background:#4A78E8;"></div><span style="font-size:12px;flex:1;">Andamento</span><span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;">'+and+'</span></div>'
+          +'<div style="display:flex;align-items:center;gap:7px;"><div style="width:9px;height:9px;border-radius:3px;background:#2DBF7E;"></div><span style="font-size:12px;flex:1;">Resolvido</span><span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;">'+res+'</span></div>'
+        +'</div>'
+      +'</div>'
+    +'</div>'
+    // Tipos
+    +'<div class="rpt-card"><div class="rpt-slbl">Tipos de Chamado</div>'+buildTipoBars(tiEntries)+'</div>'
+    +'</div>';
 
-  <!-- INSIGHT IA -->
-  <div class="rpt-insight" style="margin-bottom:16px;">
-    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9B59D0;font-weight:700;margin-bottom:8px;">📊 Análise do Período</div>
-    ${taxa>=70
-      ? `A operação de TI está com desempenho <strong>saudável</strong>. Taxa de resolução de <strong>${taxa}%</strong> indica boa capacidade de resposta.${topLoja?` A unidade <strong>${short(topLoja[0])}</strong> demanda atenção especial com ${topLoja[1]} chamados registrados.`:''}`
-      : `A taxa de resolução de <strong>${taxa}%</strong> está abaixo do ideal. Recomenda-se <strong>priorizar os ${ab} chamados em aberto</strong>, especialmente os ${priCnt['Crítica']} críticos.`
-    }
-    ${cobT>0?` Foram necessárias <strong>${cobT} cobranças ao suporte externo</strong>, indicando ${cobT>5?'alta dependência do suporte — considere escalar internamente':'acompanhamento ativo das demandas'}.`:''}
-    ${botLoja&&botLoja[1]===1?` A unidade <strong>${short(botLoja[0])}</strong> é a mais estável, com apenas 1 chamado registrado.`:''}
-  </div>
+  // ROW 2: Bar Lojas + Prioridades + Cobranças por tipo
+  html+='<div class="rpt-grid2">'
+    +'<div class="rpt-card"><div class="rpt-slbl">Chamados por Unidade</div>'+buildBars(loSorted)+'</div>'
+    +'<div style="display:flex;flex-direction:column;gap:16px;">'
+      +'<div class="rpt-card"><div class="rpt-slbl">Distribuição por Prioridade</div>'+priHTML+'</div>'
+      +'<div class="rpt-card"><div class="rpt-slbl">Cobranças por Tipo</div>'+cobrHTML+'</div>'
+    +'</div>'
+    +'</div>';
 
-  <!-- TABELA CHAMADOS ABERTOS -->
-  ${ab>0?`
-  <div class="rpt-card" style="margin-bottom:16px;">
-    <div class="rpt-section-lbl">Chamados em Aberto — Detalhe</div>
-    <div style="overflow-x:auto;">
-    <table class="rpt-tbl">
-      <thead><tr>
-        <th>ID</th><th>Título</th><th>Loja</th><th>Tipo</th><th>Prioridade</th><th>Sistema</th><th>Cobranças</th><th>Data Abertura</th>
-      </tr></thead>
-      <tbody>
-        ${allChamados.filter(c=>c.status==='Aberto').map(c=>{
-          const PCOR={Crítica:'#E84343',Alta:'#F4A742',Média:'#4A78E8',Baixa:'#2DBF7E'};
-          const TCHIP={'Bug':'#FDEAEA','Dúvida':'#EBF0FD','Implementação':'#F2EAFA','Infraestrutura':'#EDE8EC'};
-          const TTXT={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74'};
-          return `<tr>
-            <td style="font-family:'DM Mono',monospace;font-size:11px;color:#7A6A74;">${c.id}</td>
-            <td style="font-weight:500;max-width:160px;">${c.titulo||'—'}</td>
-            <td style="font-size:12px;">${short(c.loja)}</td>
-            <td><span class="rpt-chip" style="background:${TCHIP[c.tipo]||'#eee'};color:${TTXT[c.tipo]||'#666'}">${c.tipo}</span></td>
-            <td><span style="font-size:11px;font-weight:700;color:${PCOR[c.prioridade]||'#ccc'}">${c.prioridade}</span></td>
-            <td style="font-size:12px;color:#7A6A74;">${c.sistema}</td>
-            <td style="text-align:center;">${c.cobr_count?`<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#E8436A;">💬 ${c.cobr_count}</span>`:'—'}</td>
-            <td style="font-size:11px;color:#7A6A74;">${c.data_abertura||c.data||'—'}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-    </div>
-  </div>`:''}
+  // Alertas críticos
+  html+=critHTML;
 
-  <!-- RANKING COMPLETO + FOOTER -->
-  <div class="rpt-grid2" style="margin-bottom:16px;">
-    <div class="rpt-card">
-      <div class="rpt-section-lbl">Ranking Completo de Unidades</div>
-      ${loSorted.map(([l,n],i)=>{
-        const max=loSorted[0][1]||1;
-        return `<div class="rpt-rank-row">
-          <span class="rpt-rank-n">${String(i+1).padStart(2,'0')}</span>
-          <span class="rpt-rank-name">${short(l)}</span>
-          <div class="rpt-rank-bar"><div class="rpt-rank-bar-fill" style="width:${Math.round(n/max*100)}%"></div></div>
-          <span class="rpt-rank-cnt">${n}</span>
-          ${i===0?'<span style="font-size:10px;background:#FDEAEA;color:#E84343;padding:1px 6px;border-radius:20px;font-weight:700;">↑</span>':''}
-          ${n===1?'<span style="font-size:10px;background:#E2F8EE;color:#2DBF7E;padding:1px 6px;border-radius:20px;font-weight:700;">✓</span>':''}
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="rpt-card">
-      <div class="rpt-section-lbl">Histórico Recente com Cobranças</div>
-      ${allChamados.filter(c=>c.cobr_count>0).slice(0,6).map(c=>{
-        const SCOR={Aberto:'#F4A742','Em andamento':'#4A78E8',Resolvido:'#2DBF7E'};
-        return `<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #EDE8EC;align-items:flex-start;">
-          <div style="width:6px;height:6px;border-radius:50%;background:${SCOR[c.status]||'#ccc'};margin-top:5px;flex-shrink:0;"></div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||c.id}</div>
-            <div style="font-size:11px;color:#7A6A74;">${short(c.loja)} · ${c.data}</div>
-          </div>
-          <span style="font-family:'DM Mono',monospace;font-size:11px;color:#E8436A;font-weight:700;flex-shrink:0;">💬 ${c.cobr_count}x</span>
-        </div>`;
-      }).join('')||'<div style="font-size:12px;color:#7A6A74;text-align:center;padding:20px;">Nenhum chamado com cobranças</div>'}
-    </div>
-  </div>
+  // Insight
+  html+='<div style="background:linear-gradient(135deg,#EBF0FD,#F2EAFA);border-radius:12px;padding:16px 18px;margin-bottom:16px;font-size:13px;line-height:1.7;">'
+    +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9B59D0;font-weight:700;margin-bottom:8px;">📊 Análise do Período</div>'
+    +insightTxt
+    +'</div>';
 
-  <!-- FOOTER PRINT -->
-  <div style="border-top:1px solid #EDE8EC;padding-top:14px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#7A6A74;">
-    <div>TI Central · Mais q Make · ${now}</div>
-    <div style="font-family:'DM Mono',monospace;">${T} chamados · ${taxa}% resolvidos · ${cobT} cobranças</div>
-  </div>
-  `;
+  // Tabela abertos
+  html+=tblHTML2;
+
+  // Ranking + Histórico
+  html+='<div class="rpt-grid2">'
+    +'<div class="rpt-card"><div class="rpt-slbl">Ranking Completo de Unidades</div>'+rankHTML+'</div>'
+    +'<div class="rpt-card"><div class="rpt-slbl">Histórico — Chamados com Cobranças</div>'+histHTML+'</div>'
+    +'</div>';
+
+  // Footer
+  html+='<div style="border-top:1px solid #EDE8EC;padding-top:14px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#7A6A74;flex-wrap:wrap;gap:8px;">'
+    +'<div>TI Central · Mais q Make · '+now+'</div>'
+    +'<div style="font-family:DM Mono,monospace;">'+T+' chamados · '+taxa+'% resolvidos · '+cobT+' cobranças</div>'
+    +'</div>';
+
+  $('relatorio-bdy').innerHTML=html;
 }
+
+
 function printRelatorio(){window.print();}
 
 // ══ LIGHTBOX ══
