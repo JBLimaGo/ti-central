@@ -262,7 +262,7 @@ tbody tr:hover{background:var(--cream);}
   .main { margin-left: 0 !important; }
   .content-wrap { padding: 0 !important; overflow: visible !important; }
   .panel { display: none !important; }
-  #panel-relatorio { display: block !important; }
+  #panel-relatorio { display: block !important; } #panel-relatorio #relatorio-bdy { min-height: 200px; }
   .card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
   .rpt-noprint { display: none !important; }
   .rpt-section { break-inside: avoid; }
@@ -589,12 +589,12 @@ function navTo(tab){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   $('panel-'+tab).classList.add('active');
-  const idx={dashboard:0,chamados:1,lojas:3,relatorio:4};
-  document.querySelectorAll('.nav-item')[idx[tab]||0].classList.add('active');
+  const idx={dashboard:0,chamados:1,lojas:2,relatorio:3};
+  try{const ni=document.querySelectorAll('.nav-item')[idx[tab]||0];if(ni)ni.classList.add('active');}catch(e){}
   $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados',lojas:'Por Loja',relatorio:'Relatório'}[tab]||tab;
   closeSidebar();
   if(tab==='lojas') renderLojas();
-  if(tab==='relatorio') renderRelatorio();
+  if(tab==='relatorio') setTimeout(renderRelatorio, 0);
   if(tab==='chamados') renderTodos();
 }
 
@@ -967,6 +967,7 @@ function filtrarLoja(loja){navTo('chamados');setTimeout(()=>{$('f-loja').value=l
 
 // ══ RELATÓRIO ══
 function renderRelatorio(){
+  console.log('[TI] renderRelatorio chamado, chamados:', allChamados.length, 'el:', $('relatorio-bdy'));
   if(allChamados.length===0){
     $('relatorio-bdy').innerHTML='<div style="background:#fff;border-radius:16px;padding:64px 32px;text-align:center;box-shadow:var(--shadow);"><div style="font-size:52px;margin-bottom:20px;">📊</div><div style="font-size:18px;font-weight:500;margin-bottom:10px;">Relatório vazio</div><div style="font-size:13px;color:var(--ink-60);max-width:340px;margin:0 auto 28px;">Nenhum chamado registrado ainda. O relatório será gerado assim que o primeiro chamado for cadastrado.</div><button class="btn btn-primary" onclick="navTo(\'dashboard\');setTimeout(openNew,200)">＋ Registrar Primeiro Chamado</button></div>';
     return;
@@ -1322,6 +1323,7 @@ function renderRelatorio(){
     +'</div>';
 
   $('relatorio-bdy').innerHTML=html;
+  console.log('[TI] relatorio-bdy preenchido, tamanho:', html.length);
 }
 
 
