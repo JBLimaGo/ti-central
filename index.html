@@ -205,6 +205,8 @@ tbody tr:hover{background:var(--cream);}
 
 /* ── TIMELINE ── */
 .timeline{position:relative;padding-left:22px;}
+.two-col-wrap{display:grid;grid-template-columns:1fr 320px;gap:16px;}
+@media(max-width:900px){.two-col-wrap{grid-template-columns:1fr;}}
 .timeline::before{content:'';position:absolute;left:6px;top:5px;bottom:5px;width:2px;background:var(--ink-20);}
 .tl-item{position:relative;margin-bottom:14px;}
 .tl-dot{position:absolute;left:-22px;top:3px;width:13px;height:13px;border-radius:50%;background:var(--rose);border:2px solid var(--white);box-shadow:0 0 0 2px var(--rose);}
@@ -307,7 +309,7 @@ tbody tr:hover{background:var(--cream);}
     <!-- DASHBOARD -->
     <div class="panel active" id="panel-dashboard">
       <div class="kpi-grid" id="kpi-grid"><div class="loading"><div class="spinner"></div></div></div>
-      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:18px;" class="two-col-wrap">
+      <div class="two-col-wrap" style="margin-bottom:18px;">
         <div class="card">
           <div class="card-hdr"><div><div class="card-ttl">Chamados por Loja</div><div class="card-sub">Ranking do período</div></div></div>
           <div class="card-bdy" id="loja-rank"><div class="loading"><div class="spinner"></div></div></div>
@@ -625,6 +627,17 @@ function renderKPIs(){
   const cob=allChamados.reduce((a,c)=>a+c.cobr_count,0);
   const taxa=t?Math.round(res/t*100):0;
   $('badge-open').textContent=ab;
+
+  if(t===0){
+    $('kpi-grid').innerHTML=`<div style="grid-column:span 5;background:#fff;border-radius:12px;padding:48px 32px;text-align:center;box-shadow:var(--shadow);">
+      <div style="font-size:48px;margin-bottom:16px;">📋</div>
+      <div style="font-size:18px;font-weight:500;margin-bottom:8px;">Nenhum chamado registrado ainda</div>
+      <div style="font-size:13px;color:var(--ink-60);margin-bottom:24px;max-width:380px;margin-left:auto;margin-right:auto;">O sistema está pronto. Registre o primeiro chamado clicando no botão abaixo ou no botão <strong>＋ Chamado</strong> no topo da tela.</div>
+      <button class="btn btn-primary" onclick="openNew()">＋ Registrar Primeiro Chamado</button>
+    </div>`;
+    return;
+  }
+
   $('kpi-grid').innerHTML=`
     <div class="kpi-card rose"><div class="kpi-lbl">Total Chamados</div><div class="kpi-val">${t}</div><div class="kpi-sub">registrados</div><span class="kpi-ico">🎫</span></div>
     <div class="kpi-card amber"><div class="kpi-lbl">Em Aberto</div><div class="kpi-val">${ab}</div><div class="kpi-sub" style="color:${ab>0?'var(--amber)':'var(--ink-60)'}">${ab>0?'⚠ Aguardando':'Tudo ok'}</div><span class="kpi-ico">🔓</span></div>
@@ -637,7 +650,8 @@ function renderRanking(){
   const cnt={};allChamados.forEach(c=>{cnt[c.loja]=(cnt[c.loja]||0)+1;});
   const s=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
   const max=s[0]?.[1]||1;
-  $('loja-rank').innerHTML=s.length?s.map(([l,n],i)=>`
+  if(!s.length){$('loja-rank').innerHTML='<div style="color:var(--ink-60);font-size:13px;text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">🏪</div>Nenhum dado ainda.<br>Registre o primeiro chamado.</div>';return;}
+  $('loja-rank').innerHTML=s.map(([l,n],i)=>`
     <div class="rank-row">
       <span class="rank-n">${String(i+1).padStart(2,'0')}</span>
       <span class="rank-name">${short(l)}</span>
@@ -645,7 +659,7 @@ function renderRanking(){
       <span class="rank-cnt">${n}</span>
       ${i===0?'<span class="rank-tag rt-hot">↑</span>':''}
       ${n===1?'<span class="rank-tag rt-ok">✓</span>':''}
-    </div>`).join(''):'<div style="color:var(--ink-60);font-size:13px;text-align:center;padding:24px">Nenhum dado ainda</div>';
+    </div>`).join('');
 }
 
 function renderTipos(){
@@ -673,6 +687,13 @@ function renderTipos(){
 
 function renderRecent(){
   const rows=allChamados.slice(0,6);
+  if(!rows.length){
+    $('tbl-recent').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--ink-60);">
+      <div style="font-size:28px;margin-bottom:8px">📭</div>
+      <div style="font-size:13px;">Nenhum chamado ainda. <button class="btn btn-primary btn-sm" style="margin-left:8px" onclick="openNew()">＋ Registrar agora</button></div>
+    </td></tr>`;
+    return;
+  }
   $('tbl-recent').innerHTML=tblHTML(rows);
 }
 
@@ -946,6 +967,15 @@ function filtrarLoja(loja){navTo('chamados');setTimeout(()=>{$('f-loja').value=l
 
 // ══ RELATÓRIO ══
 function renderRelatorio(){
+  if(allChamados.length===0){
+    $('relatorio-bdy').innerHTML=`<div style="background:#fff;border-radius:16px;padding:64px 32px;text-align:center;box-shadow:var(--shadow);">
+      <div style="font-size:52px;margin-bottom:20px;">📊</div>
+      <div style="font-size:18px;font-weight:500;margin-bottom:10px;">Relatório vazio</div>
+      <div style="font-size:13px;color:var(--ink-60);max-width:340px;margin:0 auto 28px;">Nenhum chamado registrado ainda. O relatório será gerado automaticamente assim que o primeiro chamado for cadastrado.</div>
+      <button class="btn btn-primary" onclick="navTo('dashboard');setTimeout(openNew,200)">＋ Registrar Primeiro Chamado</button>
+    </div>`;
+    return;
+  }
   const T=allChamados.length||1;
   const ab=allChamados.filter(c=>c.status==='Aberto').length;
   const and=allChamados.filter(c=>c.status==='Em andamento').length;
