@@ -316,7 +316,7 @@ tbody tr:hover{background:var(--cream);}
         <select id="f-loja" onchange="renderTodos()"><option value="">Todas as Lojas</option></select>
         <select id="f-tipo" onchange="renderTodos()">
           <option value="">Todos os Tipos</option>
-          <option>Bug</option><option>Erro</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option>
+          <option>Bug</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option>
         </select>
         <select id="f-status" onchange="renderTodos()">
           <option value="">Todos os Status</option>
@@ -354,7 +354,7 @@ tbody tr:hover{background:var(--cream);}
       <div class="fg"><label>Solicitante</label><input id="n-user" type="text" placeholder="Nome do usuário"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Tipo</label><select id="n-tipo"><option>Bug</option><option>Erro</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option></select></div>
+      <div class="fg"><label>Tipo</label><select id="n-tipo"><option>Bug</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option></select></div>
       <div class="fg"><label>Prioridade</label><select id="n-prio"><option>Baixa</option><option>Média</option><option selected>Alta</option><option>Crítica</option></select></div>
     </div>
     <div class="fg"><label>Descrição detalhada</label><textarea id="n-desc" placeholder="Descreva o que está acontecendo, quando começou, em qual etapa do sistema, qual o impacto para a loja…"></textarea></div>
@@ -446,6 +446,38 @@ tbody tr:hover{background:var(--cream);}
   </div>
   <div class="modal-ftr">
     <button class="btn btn-ghost" onclick="closeOv('ov-det')">Fechar</button>
+    <button class="btn btn-primary" id="btn-editar" onclick="openEdit()" style="display:none;">✏️ Editar Chamado</button>
+  </div>
+</div>
+</div>
+
+
+<!-- ══ MODAL EDITAR CHAMADO ══ -->
+<div class="overlay" id="ov-edit" onclick="ovClose(event,'ov-edit')">
+<div class="modal">
+  <div class="modal-hdr">
+    <div><div class="modal-ttl">Editar Chamado</div><div class="modal-sub" id="edit-sub"></div></div>
+    <button class="modal-x" onclick="closeOv('ov-edit')">✕</button>
+  </div>
+  <div class="modal-bdy">
+    <div class="fg"><label>Título do Chamado</label><input id="e-titulo" type="text"></div>
+    <div class="fr">
+      <div class="fg"><label>Loja / Unidade</label><select id="e-loja"></select></div>
+      <div class="fg"><label>Solicitante</label><input id="e-user" type="text"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Tipo</label><select id="e-tipo"><option>Bug</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option></select></div>
+      <div class="fg"><label>Prioridade</label><select id="e-prio"><option>Baixa</option><option>Média</option><option>Alta</option><option>Crítica</option></select></div>
+    </div>
+    <div class="fg"><label>Descrição detalhada</label><textarea id="e-desc"></textarea></div>
+    <div class="fr">
+      <div class="fg"><label>Sistema Afetado</label><select id="e-sist"><option>Checkout (PDV)</option><option>Sistema Web</option><option>Sincronização</option><option>Impressora</option><option>Internet / Rede</option><option>Hardware</option><option>Outro</option></select></div>
+      <div class="fg"><label>Status</label><select id="e-stat"><option>Aberto</option><option>Em andamento</option><option>Resolvido</option></select></div>
+    </div>
+  </div>
+  <div class="modal-ftr">
+    <button class="btn btn-ghost" onclick="closeOv('ov-edit')">Cancelar</button>
+    <button class="btn btn-primary" id="btn-save-edit" onclick="saveEdit()">💾 Salvar Alterações</button>
   </div>
 </div>
 </div>
@@ -695,6 +727,9 @@ async function openDetail(id){
   $('conv-list').innerHTML='<div class="loading"><div class="spinner"></div></div>';
   $('ov-det').classList.add('open');
   // load cobranças
+  // mostra botão editar só se não resolvido
+  const editBtn=$('btn-editar');
+  if(editBtn) editBtn.style.display=(c.status!=='Resolvido')?'inline-flex':'none';
   await loadCobrancas(id);
 }
 
@@ -749,6 +784,40 @@ async function updateStatus(){
     renderKPIs();renderRecent();
     toast('✅ Status atualizado para: '+ns);
   }catch(e){toast('⚠ Erro: '+e.message);}finally{setSyncing(false);}
+}
+
+
+// ══ EDITAR CHAMADO ══
+function openEdit(){
+  const ch = allChamados.find(x=>x.id===currentId);
+  if(!ch) return;
+  // preencher select de lojas se vazio
+  const el=$('e-loja');
+  if(el.options.length===0) LOJAS.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=short(l);el.appendChild(o);});
+  $('edit-sub').textContent = ch.id + ' — ' + short(ch.loja);
+  $('e-titulo').value = ch.titulo||'';
+  $('e-loja').value  = ch.loja;
+  $('e-user').value  = ch.usuario;
+  $('e-tipo').value  = ch.tipo;
+  $('e-prio').value  = ch.prioridade;
+  $('e-desc').value  = ch.descricao||'';
+  $('e-sist').value  = ch.sistema;
+  $('e-stat').value  = ch.status;
+  closeOv('ov-det');
+  $('ov-edit').classList.add('open');
+}
+async function saveEdit(){
+  const titulo=$('e-titulo').value.trim(), user=$('e-user').value.trim(), desc=$('e-desc').value.trim();
+  if(!titulo||!user||!desc){toast('⚠ Preencha título, solicitante e descrição.');return;}
+  const btn=$('btn-save-edit'); btn.textContent='Salvando…'; btn.disabled=true;
+  try{
+    setSyncing(true);
+    const upd={titulo,loja:$('e-loja').value,usuario:user,tipo:$('e-tipo').value,prioridade:$('e-prio').value,sistema:$('e-sist').value,descricao:desc,status:$('e-stat').value};
+    await sbPatch('chamados','id=eq.'+currentId, upd);
+    closeOv('ov-edit');
+    await loadAll();
+    toast('✅ Chamado '+currentId+' atualizado!');
+  }catch(e){toast('⚠ Erro: '+e.message);}finally{btn.textContent='💾 Salvar Alterações';btn.disabled=false;setSyncing(false);}
 }
 
 // ══ NOVA COBRANÇA ══
