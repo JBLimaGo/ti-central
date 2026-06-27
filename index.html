@@ -362,6 +362,10 @@ tbody tr:hover{background:var(--cream);}
       <div class="fg"><label>Sistema Afetado</label><select id="n-sist"><option>Checkout (PDV)</option><option>Sistema Web</option><option>Sincronização</option><option>Impressora</option><option>Internet / Rede</option><option>Hardware</option><option>Outro</option></select></div>
       <div class="fg"><label>Status</label><select id="n-stat"><option>Aberto</option><option>Em andamento</option><option>Resolvido</option></select></div>
     </div>
+    <div class="fr">
+      <div class="fg"><label>Data de Abertura</label><input type="date" id="n-data-abertura"></div>
+      <div class="fg"><label>Data do Chamado (no sistema)</label><input type="date" id="n-data-chamado"></div>
+    </div>
   </div>
   <div class="modal-ftr">
     <button class="btn btn-ghost" onclick="closeOv('ov-novo')">Cancelar</button>
@@ -387,7 +391,9 @@ tbody tr:hover{background:var(--cream);}
     <div class="dtab-panel active" id="dt0">
       <div class="detail-grid">
         <div><div class="df-lbl">ID</div><div class="df-val id-code" id="det-id"></div></div>
-        <div><div class="df-lbl">Data</div><div class="df-val" id="det-data"></div></div>
+        <div><div class="df-lbl">Data de Abertura</div><div class="df-val" id="det-data-abertura"></div></div>
+        <div><div class="df-lbl">Data do Chamado</div><div class="df-val" id="det-data-chamado"></div></div>
+        <div><div class="df-lbl">Cadastrado em</div><div class="df-val" id="det-data"></div></div>
         <div style="grid-column:span 2"><div class="df-lbl">Título</div><div class="df-val" id="det-titulo" style="font-size:15px;"></div></div>
         <div><div class="df-lbl">Loja</div><div class="df-val" id="det-loja"></div></div>
         <div><div class="df-lbl">Solicitante</div><div class="df-val" id="det-user"></div></div>
@@ -429,6 +435,11 @@ tbody tr:hover{background:var(--cream);}
           </div>
         </div>
         <div class="fg"><label>Resumo da Conversa</label><textarea id="nc-nota" placeholder="O que foi tratado com o suporte, qual resposta recebida, próximos passos combinados…"></textarea></div>
+        <div class="fg"><label>Observação</label><textarea id="nc-obs" placeholder="Informações adicionais, detalhes internos, contexto extra…" style="min-height:60px;"></textarea></div>
+        <div class="fr">
+          <div class="fg"><label>Responsável / Sistema</label><input type="text" id="nc-responsavel" placeholder="Ex: João — Suporte N2, Sistema X…"></div>
+          <div class="fg"><label>Data de Entrega do Chamado</label><input type="date" id="nc-data-entrega"></div>
+        </div>
         <div class="fg">
           <label>Prints da Conversa (WhatsApp) — até 10 imagens</label>
           <div id="nc-imgs-wrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;"></div>
@@ -473,6 +484,10 @@ tbody tr:hover{background:var(--cream);}
     <div class="fr">
       <div class="fg"><label>Sistema Afetado</label><select id="e-sist"><option>Checkout (PDV)</option><option>Sistema Web</option><option>Sincronização</option><option>Impressora</option><option>Internet / Rede</option><option>Hardware</option><option>Outro</option></select></div>
       <div class="fg"><label>Status</label><select id="e-stat"><option>Aberto</option><option>Em andamento</option><option>Resolvido</option></select></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Data de Abertura</label><input type="date" id="e-data-abertura"></div>
+      <div class="fg"><label>Data do Chamado (no sistema)</label><input type="date" id="e-data-chamado"></div>
     </div>
   </div>
   <div class="modal-ftr">
@@ -682,6 +697,8 @@ function populateSelects(){
 // ══ NOVO CHAMADO ══
 function openNew(){
   populateSelects();
+  $('n-data-abertura').value=today();
+  $('n-data-chamado').value=today();
   $('ov-novo').classList.add('open');
 }
 async function saveChamado(){
@@ -691,7 +708,7 @@ async function saveChamado(){
   btn.textContent='Salvando…';btn.disabled=true;
   try{
     setSyncing(true);
-    const c={id:genId(),titulo,loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today()};
+    const c={id:genId(),titulo,loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today(),data_abertura:$('n-data-abertura').value||null,data_chamado:$('n-data-chamado').value||null};
     await sbPost('chamados',c);
     closeOv('ov-novo');
     $('n-titulo').value='';$('n-user').value='';$('n-desc').value='';
@@ -711,6 +728,8 @@ async function openDetail(id){
   $('det-titulo').textContent=c.titulo||'—';
   $('det-id').textContent=c.id;
   $('det-data').textContent=c.data;
+  $('det-data-abertura').textContent=c.data_abertura||'—';
+  $('det-data-chamado').textContent=c.data_chamado||'—';
   $('det-loja').textContent=c.loja;
   $('det-user').textContent=c.usuario;
   $('det-tipo').innerHTML=chip(c.tipo);
@@ -763,6 +782,11 @@ function renderConvList(rows){
       </div>
       <div class="conv-bdy" id="cb${i}">
         <div class="conv-nota">${cv.nota}</div>
+        ${cv.observacao?`<div style="background:var(--amber-lt);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:13px;border-left:3px solid var(--amber);"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b87a00;display:block;margin-bottom:3px;">Observação</span>${cv.observacao}</div>`:''}
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+          ${cv.responsavel?`<div style="font-size:12px;"><span style="color:var(--ink-60);">👤 Responsável: </span><strong>${cv.responsavel}</strong></div>`:''}
+          ${cv.data_entrega?`<div style="font-size:12px;"><span style="color:var(--ink-60);">📆 Entrega: </span><strong>${cv.data_entrega}</strong></div>`:''}
+        </div>
         <div class="imgs-grid">
           ${(cv.cobranca_imagens||[]).map(img=>`<div class="img-thumb" onclick="openLbox('${img.data_url}')"><img src="${img.data_url}" alt="${img.nome}"></div>`).join('')}
           ${!(cv.cobranca_imagens?.length)?'<div style="font-size:12px;color:var(--ink-60)">Sem imagens nesta cobrança</div>':''}
@@ -803,6 +827,8 @@ function openEdit(){
   $('e-desc').value  = ch.descricao||'';
   $('e-sist').value  = ch.sistema;
   $('e-stat').value  = ch.status;
+  $('e-data-abertura').value = ch.data_abertura||'';
+  $('e-data-chamado').value  = ch.data_chamado||'';
   closeOv('ov-det');
   $('ov-edit').classList.add('open');
 }
@@ -812,7 +838,7 @@ async function saveEdit(){
   const btn=$('btn-save-edit'); btn.textContent='Salvando…'; btn.disabled=true;
   try{
     setSyncing(true);
-    const upd={titulo,loja:$('e-loja').value,usuario:user,tipo:$('e-tipo').value,prioridade:$('e-prio').value,sistema:$('e-sist').value,descricao:desc,status:$('e-stat').value};
+    const upd={titulo,loja:$('e-loja').value,usuario:user,tipo:$('e-tipo').value,prioridade:$('e-prio').value,sistema:$('e-sist').value,descricao:desc,status:$('e-stat').value,data_abertura:$('e-data-abertura').value||null,data_chamado:$('e-data-chamado').value||null};
     await sbPatch('chamados','id=eq.'+currentId, upd);
     closeOv('ov-edit');
     await loadAll();
@@ -852,7 +878,8 @@ async function saveCobranca(){
     // Conta cobranças existentes para definir seq
     const existing=await sbGet('cobrancas',`chamado_id=eq.${currentId}&select=id`);
     const seq=existing.length+1;
-    const [cobr]=await sbPost('cobrancas',{chamado_id:currentId,seq,data:$('nc-data').value,nota,resposta:$('nc-resp').value});
+    const obs=$('nc-obs').value.trim(), resp=$('nc-responsavel').value.trim(), dentrega=$('nc-data-entrega').value||null;
+    const [cobr]=await sbPost('cobrancas',{chamado_id:currentId,seq,data:$('nc-data').value,nota,resposta:$('nc-resp').value,observacao:obs||null,responsavel:resp||null,data_entrega:dentrega});
     // Salvar imagens
     if(ncImgs.length){
       await sbPost('cobranca_imagens',ncImgs.map(img=>({cobranca_id:cobr.id,nome:img.name,data_url:img.dataUrl})));
@@ -860,6 +887,9 @@ async function saveCobranca(){
     ncImgs=[];
     $('nc-imgs-wrap').innerHTML='';
     $('nc-nota').value='';
+    $('nc-obs').value='';
+    $('nc-responsavel').value='';
+    $('nc-data-entrega').value='';
     $('nc-form').style.display='none';
     await loadCobrancas(currentId);
     renderKPIs();renderTipos();
