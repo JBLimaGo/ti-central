@@ -348,6 +348,7 @@ tbody tr:hover{background:var(--cream);}
     <button class="modal-x" onclick="closeOv('ov-novo')">✕</button>
   </div>
   <div class="modal-bdy">
+    <div class="fg"><label>Título do Chamado</label><input id="n-titulo" type="text" placeholder="Ex: PDV travando ao finalizar venda com cartão…"></div>
     <div class="fr">
       <div class="fg"><label>Loja / Unidade</label><select id="n-loja"></select></div>
       <div class="fg"><label>Solicitante</label><input id="n-user" type="text" placeholder="Nome do usuário"></div>
@@ -387,6 +388,7 @@ tbody tr:hover{background:var(--cream);}
       <div class="detail-grid">
         <div><div class="df-lbl">ID</div><div class="df-val id-code" id="det-id"></div></div>
         <div><div class="df-lbl">Data</div><div class="df-val" id="det-data"></div></div>
+        <div style="grid-column:span 2"><div class="df-lbl">Título</div><div class="df-val" id="det-titulo" style="font-size:15px;"></div></div>
         <div><div class="df-lbl">Loja</div><div class="df-val" id="det-loja"></div></div>
         <div><div class="df-lbl">Solicitante</div><div class="df-val" id="det-user"></div></div>
         <div><div class="df-lbl">Tipo</div><div class="df-val" id="det-tipo"></div></div>
@@ -613,9 +615,10 @@ function renderRecent(){
 // ══ TABELA ══
 function tblHTML(rows){
   if(!rows.length) return '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink-60)">Nenhum chamado encontrado</td></tr>';
-  return `<thead><tr><th>ID</th><th>Loja</th><th>Usuário</th><th>Tipo</th><th>Sistema</th><th>Prioridade</th><th>Status</th><th>Cobranças</th><th>Data</th></tr></thead>
+  return `<thead><tr><th>ID</th><th>Título</th><th>Loja</th><th>Usuário</th><th>Tipo</th><th>Sistema</th><th>Prioridade</th><th>Status</th><th>Cobranças</th><th>Data</th></tr></thead>
   <tbody>${rows.map(c=>`<tr onclick="openDetail('${c.id}')">
     <td class="id-code">${c.id}</td>
+    <td style="font-weight:500;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||'—'}</td>
     <td><span class="loja-pill">${short(c.loja)}</span></td>
     <td>${c.usuario}</td>
     <td>${chip(c.tipo)}</td>
@@ -650,16 +653,16 @@ function openNew(){
   $('ov-novo').classList.add('open');
 }
 async function saveChamado(){
-  const user=$('n-user').value.trim(), desc=$('n-desc').value.trim();
-  if(!user||!desc){toast('⚠ Preencha solicitante e descrição.');return;}
+  const titulo=$('n-titulo').value.trim(), user=$('n-user').value.trim(), desc=$('n-desc').value.trim();
+  if(!titulo){toast('⚠ Preencha o título do chamado.');return;} if(!user||!desc){toast('⚠ Preencha solicitante e descrição.');return;}
   const btn=document.querySelector('#ov-novo .btn-primary');
   btn.textContent='Salvando…';btn.disabled=true;
   try{
     setSyncing(true);
-    const c={id:genId(),loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today()};
+    const c={id:genId(),titulo,loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today()};
     await sbPost('chamados',c);
     closeOv('ov-novo');
-    $('n-user').value='';$('n-desc').value='';
+    $('n-titulo').value='';$('n-user').value='';$('n-desc').value='';
     await loadAll();
     toast('✅ Chamado '+c.id+' registrado!');
   }catch(e){toast('⚠ Erro: '+e.message);}finally{btn.textContent='Salvar Chamado';btn.disabled=false;setSyncing(false);}
@@ -671,8 +674,9 @@ async function openDetail(id){
   switchDTab(0);
   const c=allChamados.find(x=>x.id===id);
   if(!c)return;
-  $('det-ttl').textContent=c.id+' — '+short(c.loja);
+  $('det-ttl').textContent=(c.titulo||c.id)+' — '+short(c.loja);
   $('det-sub').textContent=c.tipo+' · '+c.sistema+' · '+c.data;
+  $('det-titulo').textContent=c.titulo||'—';
   $('det-id').textContent=c.id;
   $('det-data').textContent=c.data;
   $('det-loja').textContent=c.loja;
