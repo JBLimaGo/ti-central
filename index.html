@@ -252,6 +252,23 @@ tbody tr:hover{background:var(--cream);}
   @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
   .overlay{align-items:flex-end;padding:0;}
 }
+
+/* ══ PRINT STYLES ══ */
+@media print {
+  @page { size: A4; margin: 15mm 12mm; }
+  .sidebar, .topbar, .sidebar-overlay, .toast { display: none !important; }
+  .main { margin-left: 0 !important; }
+  .content-wrap { padding: 0 !important; overflow: visible !important; }
+  .panel { display: none !important; }
+  #panel-relatorio { display: block !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
+  .rpt-noprint { display: none !important; }
+  .rpt-section { break-inside: avoid; }
+  body { background: #fff !important; font-size: 11pt; }
+  .rpt-hero { background: #1A1018 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-kpi-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  svg { overflow: visible; }
+}
 </style>
 </head>
 <body>
@@ -333,7 +350,7 @@ tbody tr:hover{background:var(--cream);}
 
     <!-- RELATÓRIO -->
     <div class="panel" id="panel-relatorio">
-      <div class="card"><div class="card-hdr"><div class="card-ttl">📋 Relatório para Supervisor</div><button class="btn btn-ghost btn-sm" onclick="printRelatorio()">🖨 Imprimir</button></div><div class="card-bdy" id="relatorio-bdy"></div></div>
+      <div id="relatorio-bdy"></div>
     </div>
 
   </div>
@@ -929,35 +946,393 @@ function filtrarLoja(loja){navTo('chamados');setTimeout(()=>{$('f-loja').value=l
 
 // ══ RELATÓRIO ══
 function renderRelatorio(){
-  const t=allChamados.length, res=allChamados.filter(c=>c.status==='Resolvido').length;
+  const T=allChamados.length||1;
   const ab=allChamados.filter(c=>c.status==='Aberto').length;
+  const and=allChamados.filter(c=>c.status==='Em andamento').length;
+  const res=allChamados.filter(c=>c.status==='Resolvido').length;
   const crit=allChamados.filter(c=>c.prioridade==='Crítica'&&c.status!=='Resolvido');
   const cobT=allChamados.reduce((a,c)=>a+c.cobr_count,0);
-  const taxa=t?Math.round(res/t*100):0;
-  const cnt={};allChamados.forEach(c=>{cnt[c.loja]=(cnt[c.loja]||0)+1;});
-  const sorted=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+  const taxa=Math.round(res/T*100);
+  const now=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  // Tipo counts
   const tiCnt={};allChamados.forEach(c=>{tiCnt[c.tipo]=(tiCnt[c.tipo]||0)+1;});
-  const topT=Object.entries(tiCnt).sort((a,b)=>b[1]-a[1])[0];
+  const tiEntries=Object.entries(tiCnt).sort((a,b)=>b[1]-a[1]);
+  const topTipo=tiEntries[0];
+
+  // Loja counts
+  const loCnt={};allChamados.forEach(c=>{loCnt[c.loja]=(loCnt[c.loja]||0)+1;});
+  const loSorted=Object.entries(loCnt).sort((a,b)=>b[1]-a[1]);
+  const topLoja=loSorted[0];
+  const botLoja=loSorted[loSorted.length-1];
+
+  // Cobranças por tipo
   const cobTip={};allChamados.forEach(c=>{if(c.cobr_count)cobTip[c.tipo]=(cobTip[c.tipo]||0)+c.cobr_count;});
 
+  // Prioridade counts
+  const priCnt={Crítica:0,Alta:0,Média:0,Baixa:0};
+  allChamados.forEach(c=>{if(priCnt[c.prioridade]!==undefined)priCnt[c.prioridade]++;});
+
+  // ── SVG Donut — Status ──
+  function donut(vals,colors,cx,cy,r,stroke){
+    let total=vals.reduce((a,b)=>a+b,0)||1, angle=-Math.PI/2, parts='';
+    vals.forEach((v,i)=>{
+      const a=(v/total)*2*Math.PI, x1=cx+r*Math.cos(angle), y1=cy+r*Math.sin(angle);
+      angle+=a;
+      const x2=cx+r*Math.cos(angle), y2=cy+r*Math.sin(angle);
+      const lg=a>Math.PI?1:0;
+      parts+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${lg},1 ${x2},${y2} Z" fill="${colors[i]}" opacity=".9"/>`;
+    });
+    return `<g>${parts}<circle cx="${cx}" cy="${cy}" r="${r*0.58}" fill="white"/></g>`;
+  }
+
+  // ── SVG Bar — Lojas ──
+  function barChart(entries,maxW,barH,gap){
+    const max=entries[0]?.[1]||1;
+    return entries.slice(0,10).map(([l,n],i)=>{
+      const w=Math.round((n/max)*maxW);
+      const y=i*(barH+gap);
+      const label=short(l);
+      const cor=i===0?'#E8436A':i<3?'#F4A742':'#4A78E8';
+      return `<g transform="translate(0,${y})">
+        <text x="0" y="${barH/2+4}" font-size="10" fill="#7A6A74" font-family="DM Sans,sans-serif">${label}</text>
+        <rect x="110" y="0" width="${w}" height="${barH}" rx="4" fill="${cor}" opacity=".85"/>
+        <text x="${110+w+5}" y="${barH/2+4}" font-size="10" font-weight="600" fill="#1A1018" font-family="DM Mono,monospace">${n}</text>
+      </g>`;
+    }).join('');
+  }
+
+  // ── SVG Horizontal bar — Tipos ──
+  function tipoBar(entries,total){
+    const CORS={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74','Erro':'#F4A742'};
+    return entries.map(([t,n],i)=>{
+      const pct=Math.round(n/total*100);
+      const cor=CORS[t]||'#ccc';
+      const y=i*28;
+      return `<g transform="translate(0,${y})">
+        <rect x="0" y="4" width="160" height="10" rx="5" fill="#EDE8EC"/>
+        <rect x="0" y="4" width="${Math.round(160*pct/100)}" height="10" rx="5" fill="${cor}"/>
+        <text x="0" y="30" font-size="10" fill="#1A1018" font-family="DM Sans,sans-serif">${t}</text>
+        <text x="165" y="14" font-size="10" font-weight="600" fill="${cor}" font-family="DM Mono,monospace">${pct}%</text>
+      </g>`;
+    }).join('');
+  }
+
+  // ── SVG Gauge — Taxa Resolução ──
+  function gauge(pct){
+    const r=52, cx=70, cy=70;
+    const startA=-Math.PI*0.8, endA=Math.PI*0.8, total=endA-startA;
+    const filled=startA+total*(pct/100);
+    const x1=cx+r*Math.cos(startA), y1=cy+r*Math.sin(startA);
+    const x2=cx+r*Math.cos(endA),   y2=cy+r*Math.sin(endA);
+    const fx=cx+r*Math.cos(filled),  fy=cy+r*Math.sin(filled);
+    const lg1=(endA-startA)>Math.PI?1:0;
+    const lg2=(filled-startA)>Math.PI?1:0;
+    const cor=pct>=70?'#2DBF7E':pct>=40?'#F4A742':'#E84343';
+    return `<svg width="140" height="100" viewBox="0 0 140 100">
+      <path d="M${x1},${y1} A${r},${r} 0 ${lg1},1 ${x2},${y2}" fill="none" stroke="#EDE8EC" stroke-width="10" stroke-linecap="round"/>
+      <path d="M${x1},${y1} A${r},${r} 0 ${lg2},1 ${fx},${fy}" fill="none" stroke="${cor}" stroke-width="10" stroke-linecap="round"/>
+      <text x="${cx}" y="${cy+8}" text-anchor="middle" font-size="20" font-weight="300" fill="#1A1018" font-family="DM Sans,sans-serif">${pct}%</text>
+      <text x="${cx}" y="${cy+22}" text-anchor="middle" font-size="9" fill="#7A6A74" font-family="DM Sans,sans-serif">RESOLUÇÃO</text>
+    </svg>`;
+  }
+
+  const statusDonut=donut([ab,and,res],['#F4A742','#4A78E8','#2DBF7E'],60,60,50,8);
+  const loBarH=loSorted.length;
+  const tiBarH=tiEntries.length;
+
   $('relatorio-bdy').innerHTML=`
-    <div style="background:var(--rose-lt);border-left:4px solid var(--rose);padding:15px 17px;border-radius:0 8px 8px 0;margin-bottom:20px;">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--rose-dk);font-weight:700;margin-bottom:6px;">Resumo Executivo — TI</div>
-      <div style="font-size:14px;line-height:1.75;">Foram registrados <strong>${t} chamados</strong> no período, com taxa de resolução de <strong>${taxa}%</strong>. Atualmente <strong>${ab} em aberto</strong> e <strong>${crit.length} crítico(s)</strong>. Total de <strong>${cobT} cobranças ao suporte</strong> via WhatsApp. Tipo mais frequente: <strong>${topT?.[0]||'—'}</strong>.</div>
+  <style>
+    .rpt-hero{background:linear-gradient(135deg,#1A1018 0%,#2d1a28 60%,#3a1a2e 100%);color:#fff;border-radius:16px;padding:32px 36px;margin-bottom:24px;position:relative;overflow:hidden;}
+    .rpt-hero::before{content:'';position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:rgba(232,67,106,.12);pointer-events:none;}
+    .rpt-hero::after{content:'';position:absolute;right:40px;bottom:-60px;width:140px;height:140px;border-radius:50%;background:rgba(74,120,232,.1);pointer-events:none;}
+    .rpt-eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px;font-family:'DM Mono',monospace;}
+    .rpt-htitle{font-size:26px;font-weight:300;margin-bottom:6px;letter-spacing:-.5px;}
+    .rpt-hdate{font-size:13px;color:rgba(255,255,255,.45);}
+    .rpt-executive{font-size:14px;line-height:1.8;color:rgba(255,255,255,.8);margin-top:16px;max-width:640px;border-top:1px solid rgba(255,255,255,.1);padding-top:16px;}
+    .rpt-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+    .rpt-kpi-card{background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 2px 12px rgba(26,16,24,.07);border-bottom:3px solid;text-align:center;position:relative;overflow:hidden;}
+    .rpt-kpi-val{font-size:36px;font-weight:300;letter-spacing:-1.5px;line-height:1;}
+    .rpt-kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:#7A6A74;font-weight:600;margin-top:6px;}
+    .rpt-kpi-sub{font-size:11px;margin-top:4px;}
+    .rpt-kpi-ico{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:30px;opacity:.07;}
+    .rpt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+    .rpt-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+    .rpt-card{background:#fff;border-radius:12px;padding:20px 22px;box-shadow:0 2px 12px rgba(26,16,24,.07);}
+    .rpt-section-lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#7A6A74;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+    .rpt-section-lbl::after{content:'';flex:1;height:1px;background:#EDE8EC;}
+    .rpt-alert{border-radius:10px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;}
+    .rpt-alert.red{background:#FDEAEA;border-left:4px solid #E84343;}
+    .rpt-alert.amber{background:#FEF3E2;border-left:4px solid #F4A742;}
+    .rpt-alert-id{font-family:'DM Mono',monospace;font-size:11px;color:#7A6A74;flex-shrink:0;margin-top:1px;}
+    .rpt-alert-body{font-size:13px;flex:1;}
+    .rpt-alert-cobr{font-size:11px;font-weight:700;color:#E84343;flex-shrink:0;}
+    .rpt-rank-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #EDE8EC;}
+    .rpt-rank-row:last-child{border-bottom:none;}
+    .rpt-rank-n{font-family:'DM Mono',monospace;font-size:10px;color:#7A6A74;width:16px;flex-shrink:0;}
+    .rpt-rank-name{font-size:13px;flex:1;}
+    .rpt-rank-bar{height:5px;border-radius:10px;background:#EDE8EC;flex:1;max-width:80px;}
+    .rpt-rank-bar-fill{height:100%;border-radius:10px;background:#E8436A;}
+    .rpt-rank-cnt{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;min-width:22px;text-align:right;}
+    .rpt-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+    .rpt-tbl th{text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#7A6A74;font-weight:700;border-bottom:2px solid #EDE8EC;}
+    .rpt-tbl td{padding:8px 10px;border-bottom:1px solid #EDE8EC;vertical-align:top;}
+    .rpt-tbl tr:last-child td{border-bottom:none;}
+    .rpt-chip{display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;}
+    .rpt-insight{background:linear-gradient(135deg,#EBF0FD,#F2EAFA);border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.7;color:#1A1018;}
+    .rpt-insight strong{color:#4A78E8;}
+    @media(max-width:768px){
+      .rpt-kpi-row{grid-template-columns:repeat(3,1fr);}
+      .rpt-grid2,.rpt-grid3{grid-template-columns:1fr;}
+      .rpt-htitle{font-size:20px;}
+    }
+    @media print{
+      .rpt-kpi-row{grid-template-columns:repeat(5,1fr)!important;}
+      .rpt-grid2{grid-template-columns:1fr 1fr!important;}
+      .rpt-grid3{grid-template-columns:1fr 1fr 1fr!important;}
+    }
+  </style>
+
+  <!-- HERO HEADER -->
+  <div class="rpt-hero">
+    <div class="rpt-eyebrow">TI Central · Mais q Make</div>
+    <div class="rpt-htitle">Relatório de Chamados e Suporte</div>
+    <div class="rpt-hdate">Gerado em ${now} · ${T} chamados registrados</div>
+    <div class="rpt-executive">
+      No período analisado foram registrados <strong>${T} chamados</strong> distribuídos entre as 10 unidades.
+      A taxa de resolução está em <strong>${taxa}%</strong>, com <strong>${ab} chamados em aberto</strong>
+      e <strong>${crit.length} de prioridade crítica</strong>.
+      Foram realizadas <strong>${cobT} cobranças ao suporte</strong> via WhatsApp.
+      ${topLoja?`A unidade <strong>${short(topLoja[0])}</strong> lidera o ranking com ${topLoja[1]} ocorrências.`:''}
+      O tipo de problema mais frequente é <strong>${topTipo?.[0]||'—'}</strong>.
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
-      <div style="background:var(--cream);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;">${t}</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Chamados</div></div>
-      <div style="background:var(--amber-lt);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;color:#b87a00;">${ab}</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Em Aberto</div></div>
-      <div style="background:var(--green-lt);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;color:var(--green);">${taxa}%</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Resolução</div></div>
-      <div style="background:var(--rose-lt);border-radius:10px;padding:13px;text-align:center;"><div style="font-size:26px;font-weight:300;color:var(--rose);">${cobT}</div><div style="font-size:11px;color:var(--ink-60);margin-top:2px;">Cobranças</div></div>
+    <div style="margin-top:20px;" class="rpt-noprint">
+      <button onclick="window.print()" style="background:rgba(255,255,255,.12);color:#fff;border:1.5px solid rgba(255,255,255,.25);padding:9px 20px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">🖨 Imprimir Relatório</button>
     </div>
-    ${crit.length?`<div style="margin-bottom:20px;"><div style="font-weight:600;font-size:13px;margin-bottom:10px;color:var(--red);">🚨 Chamados Críticos em Aberto</div>${crit.map(c=>`<div style="background:var(--red-lt);border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;gap:12px;"><div><strong>${c.id}</strong> — ${short(c.loja)} — ${c.usuario}<br><span style="color:var(--ink-60)">${(c.descricao||'').slice(0,80)}…</span></div><span style="color:var(--rose);font-weight:600;font-size:11px;flex-shrink:0;">💬 ${c.cobr_count}x</span></div>`).join('')}</div>`:''}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;">
-      <div><div style="font-weight:600;font-size:13px;margin-bottom:10px;">🏪 Ranking por Loja</div>${sorted.slice(0,8).map(([l,n],i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px;"><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink-60);min-width:20px;">${i+1}.</span><span style="flex:1;">${short(l)}</span><span style="font-family:'DM Mono',monospace;font-size:12px;">${n}</span></div>`).join('')}</div>
-      <div><div style="font-weight:600;font-size:13px;margin-bottom:10px;">💬 Cobranças por Tipo</div>${Object.entries(cobTip).sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">${chip(t)}<span style="flex:1;font-size:12px;color:var(--ink-60);">${n} cobrança(s)</span></div>`).join('')||'<div style="font-size:12px;color:var(--ink-60)">Nenhuma cobrança</div>'}</div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="rpt-kpi-row">
+    <div class="rpt-kpi-card" style="border-bottom-color:#E8436A;">
+      <div class="rpt-kpi-val" style="color:#E8436A;">${T}</div>
+      <div class="rpt-kpi-lbl">Total</div>
+      <div class="rpt-kpi-sub" style="color:#7A6A74;">chamados</div>
+      <span class="rpt-kpi-ico">🎫</span>
     </div>
-    <div><div style="font-weight:600;font-size:13px;margin-bottom:10px;">📅 Chamados com Cobranças ao Suporte</div>
-    <div class="timeline">${allChamados.filter(c=>c.cobr_count>0).slice(0,6).map(c=>`<div class="tl-item"><div class="tl-dot ${c.status==='Resolvido'?'ok':c.status==='Aberto'?'':'gray'}"></div><div class="tl-meta">${c.data} · ${short(c.loja)} · ${c.usuario}</div><div class="tl-text">${(c.descricao||'').slice(0,70)}… <span style="color:var(--rose);font-weight:600;">💬 ${c.cobr_count}x suporte</span></div></div>`).join('') || '<div style="font-size:13px;color:var(--ink-60)">Nenhum chamado com cobrança registrada</div>'}</div></div>`;
+    <div class="rpt-kpi-card" style="border-bottom-color:#F4A742;">
+      <div class="rpt-kpi-val" style="color:#F4A742;">${ab}</div>
+      <div class="rpt-kpi-lbl">Abertos</div>
+      <div class="rpt-kpi-sub" style="color:${ab>0?'#F4A742':'#2DBF7E'}">${ab>0?'⚠ Atenção':'✓ Ok'}</div>
+      <span class="rpt-kpi-ico">🔓</span>
+    </div>
+    <div class="rpt-kpi-card" style="border-bottom-color:#4A78E8;">
+      <div class="rpt-kpi-val" style="color:#4A78E8;">${and}</div>
+      <div class="rpt-kpi-lbl">Andamento</div>
+      <div class="rpt-kpi-sub" style="color:#7A6A74;">em tratativa</div>
+      <span class="rpt-kpi-ico">🔧</span>
+    </div>
+    <div class="rpt-kpi-card" style="border-bottom-color:#2DBF7E;">
+      <div class="rpt-kpi-val" style="color:#2DBF7E;">${res}</div>
+      <div class="rpt-kpi-lbl">Resolvidos</div>
+      <div class="rpt-kpi-sub" style="color:#2DBF7E;">✓ ${taxa}% do total</div>
+      <span class="rpt-kpi-ico">✅</span>
+    </div>
+    <div class="rpt-kpi-card" style="border-bottom-color:#9B59D0;">
+      <div class="rpt-kpi-val" style="color:#9B59D0;">${cobT}</div>
+      <div class="rpt-kpi-lbl">Cobranças</div>
+      <div class="rpt-kpi-sub" style="color:#7A6A74;">ao suporte</div>
+      <span class="rpt-kpi-ico">💬</span>
+    </div>
+  </div>
+
+  <!-- ROW 1: Gauge + Donut Status + Tipos -->
+  <div class="rpt-grid3" style="margin-bottom:16px;">
+
+    <!-- Gauge taxa resolução -->
+    <div class="rpt-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <div class="rpt-section-lbl" style="width:100%;">Taxa de Resolução</div>
+      ${gauge(taxa)}
+      <div style="font-size:12px;color:#7A6A74;text-align:center;margin-top:4px;">
+        ${taxa>=70?'🟢 Desempenho saudável':taxa>=40?'🟡 Atenção necessária':'🔴 Nível crítico'}
+      </div>
+    </div>
+
+    <!-- Donut Status -->
+    <div class="rpt-card">
+      <div class="rpt-section-lbl">Status dos Chamados</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <svg width="120" height="120" viewBox="0 0 120 120">${statusDonut}</svg>
+        <div style="flex:1;">
+          ${[['Aberto','#F4A742',ab],['Andamento','#4A78E8',and],['Resolvido','#2DBF7E',res]].map(([l,c,n])=>`
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;">
+            <div style="width:9px;height:9px;border-radius:3px;background:${c};flex-shrink:0;"></div>
+            <span style="font-size:12px;flex:1;">${l}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;">${n}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Tipos -->
+    <div class="rpt-card">
+      <div class="rpt-section-lbl">Tipos de Chamado</div>
+      <svg width="100%" height="${tiEntries.length*28}" viewBox="0 0 230 ${tiEntries.length*28}">
+        ${tipoBar(tiEntries,T)}
+      </svg>
+    </div>
+  </div>
+
+  <!-- ROW 2: Bar Lojas + Prioridades -->
+  <div class="rpt-grid2" style="margin-bottom:16px;">
+
+    <!-- Bar lojas -->
+    <div class="rpt-card">
+      <div class="rpt-section-lbl">Chamados por Unidade</div>
+      <svg width="100%" height="${loSorted.length*26}" viewBox="0 0 310 ${loSorted.length*26}">
+        ${barChart(loSorted,165,18,8)}
+      </svg>
+    </div>
+
+    <!-- Prioridades + Cobranças por tipo -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="rpt-card">
+        <div class="rpt-section-lbl">Distribuição por Prioridade</div>
+        ${Object.entries(priCnt).map(([p,n])=>{
+          const PCOR={Crítica:'#E84343',Alta:'#F4A742',Média:'#4A78E8',Baixa:'#2DBF7E'};
+          const pct=Math.round(n/T*100);
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
+            <span style="font-size:12px;min-width:60px;font-weight:${p==='Crítica'?'600':'400'};color:${p==='Crítica'?'#E84343':'#1A1018'}">${p}</span>
+            <div style="flex:1;height:7px;background:#EDE8EC;border-radius:10px;">
+              <div style="height:100%;border-radius:10px;background:${PCOR[p]};width:${pct}%;transition:width .4s;"></div>
+            </div>
+            <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;min-width:28px;text-align:right;">${n}</span>
+            <span style="font-size:10px;color:#7A6A74;min-width:30px;">${pct}%</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="rpt-card">
+        <div class="rpt-section-lbl">Cobranças ao Suporte por Tipo</div>
+        ${Object.entries(cobTip).length
+          ? Object.entries(cobTip).sort((a,b)=>b[1]-a[1]).map(([t,n])=>{
+              const TCOR={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74','Erro':'#F4A742'};
+              const TCHIP={'Bug':'c-bug','Dúvida':'c-duvida','Implementação':'c-impl','Infraestrutura':'c-infra','Erro':'c-erro'};
+              const totCob=Object.values(cobTip).reduce((a,b)=>a+b,0)||1;
+              const pct=Math.round(n/totCob*100);
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span class="chip ${TCHIP[t]||'c-infra'}" style="font-size:10px;padding:2px 7px;">${t}</span>
+                <div style="flex:1;height:5px;background:#EDE8EC;border-radius:10px;">
+                  <div style="height:100%;border-radius:10px;background:${TCOR[t]||'#ccc'};width:${pct}%;"></div>
+                </div>
+                <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;">${n}x</span>
+              </div>`;
+            }).join('')
+          : '<div style="font-size:12px;color:#7A6A74;text-align:center;padding:16px;">Nenhuma cobrança registrada</div>'
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERTAS CRÍTICOS -->
+  ${crit.length ? `
+  <div class="rpt-card" style="margin-bottom:16px;">
+    <div class="rpt-section-lbl" style="color:#E84343;">🚨 Chamados Críticos em Aberto</div>
+    ${crit.map(c=>`
+    <div class="rpt-alert red">
+      <div class="rpt-alert-id">${c.id}</div>
+      <div class="rpt-alert-body">
+        <div style="font-weight:600;margin-bottom:2px;">${c.titulo||'Sem título'}</div>
+        <div style="color:#7A6A74;font-size:12px;">${short(c.loja)} · ${c.usuario} · ${c.sistema}</div>
+        <div style="font-size:12px;margin-top:4px;">${(c.descricao||'').slice(0,100)}${(c.descricao||'').length>100?'…':''}</div>
+      </div>
+      <div class="rpt-alert-cobr">💬 ${c.cobr_count}x</div>
+    </div>`).join('')}
+  </div>` : `
+  <div class="rpt-card" style="margin-bottom:16px;background:linear-gradient(135deg,#E2F8EE,#f0fdf7);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:28px;">✅</div>
+      <div><div style="font-weight:600;font-size:14px;color:#1a8a57;">Nenhum chamado crítico em aberto</div><div style="font-size:12px;color:#7A6A74;margin-top:2px;">Todas as ocorrências críticas foram resolvidas.</div></div>
+    </div>
+  </div>`}
+
+  <!-- INSIGHT IA -->
+  <div class="rpt-insight" style="margin-bottom:16px;">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9B59D0;font-weight:700;margin-bottom:8px;">📊 Análise do Período</div>
+    ${taxa>=70
+      ? `A operação de TI está com desempenho <strong>saudável</strong>. Taxa de resolução de <strong>${taxa}%</strong> indica boa capacidade de resposta.${topLoja?` A unidade <strong>${short(topLoja[0])}</strong> demanda atenção especial com ${topLoja[1]} chamados registrados.`:''}`
+      : `A taxa de resolução de <strong>${taxa}%</strong> está abaixo do ideal. Recomenda-se <strong>priorizar os ${ab} chamados em aberto</strong>, especialmente os ${priCnt['Crítica']} críticos.`
+    }
+    ${cobT>0?` Foram necessárias <strong>${cobT} cobranças ao suporte externo</strong>, indicando ${cobT>5?'alta dependência do suporte — considere escalar internamente':'acompanhamento ativo das demandas'}.`:''}
+    ${botLoja&&botLoja[1]===1?` A unidade <strong>${short(botLoja[0])}</strong> é a mais estável, com apenas 1 chamado registrado.`:''}
+  </div>
+
+  <!-- TABELA CHAMADOS ABERTOS -->
+  ${ab>0?`
+  <div class="rpt-card" style="margin-bottom:16px;">
+    <div class="rpt-section-lbl">Chamados em Aberto — Detalhe</div>
+    <div style="overflow-x:auto;">
+    <table class="rpt-tbl">
+      <thead><tr>
+        <th>ID</th><th>Título</th><th>Loja</th><th>Tipo</th><th>Prioridade</th><th>Sistema</th><th>Cobranças</th><th>Data Abertura</th>
+      </tr></thead>
+      <tbody>
+        ${allChamados.filter(c=>c.status==='Aberto').map(c=>{
+          const PCOR={Crítica:'#E84343',Alta:'#F4A742',Média:'#4A78E8',Baixa:'#2DBF7E'};
+          const TCHIP={'Bug':'#FDEAEA','Dúvida':'#EBF0FD','Implementação':'#F2EAFA','Infraestrutura':'#EDE8EC'};
+          const TTXT={'Bug':'#E84343','Dúvida':'#4A78E8','Implementação':'#9B59D0','Infraestrutura':'#7A6A74'};
+          return `<tr>
+            <td style="font-family:'DM Mono',monospace;font-size:11px;color:#7A6A74;">${c.id}</td>
+            <td style="font-weight:500;max-width:160px;">${c.titulo||'—'}</td>
+            <td style="font-size:12px;">${short(c.loja)}</td>
+            <td><span class="rpt-chip" style="background:${TCHIP[c.tipo]||'#eee'};color:${TTXT[c.tipo]||'#666'}">${c.tipo}</span></td>
+            <td><span style="font-size:11px;font-weight:700;color:${PCOR[c.prioridade]||'#ccc'}">${c.prioridade}</span></td>
+            <td style="font-size:12px;color:#7A6A74;">${c.sistema}</td>
+            <td style="text-align:center;">${c.cobr_count?`<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#E8436A;">💬 ${c.cobr_count}</span>`:'—'}</td>
+            <td style="font-size:11px;color:#7A6A74;">${c.data_abertura||c.data||'—'}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>`:''}
+
+  <!-- RANKING COMPLETO + FOOTER -->
+  <div class="rpt-grid2" style="margin-bottom:16px;">
+    <div class="rpt-card">
+      <div class="rpt-section-lbl">Ranking Completo de Unidades</div>
+      ${loSorted.map(([l,n],i)=>{
+        const max=loSorted[0][1]||1;
+        return `<div class="rpt-rank-row">
+          <span class="rpt-rank-n">${String(i+1).padStart(2,'0')}</span>
+          <span class="rpt-rank-name">${short(l)}</span>
+          <div class="rpt-rank-bar"><div class="rpt-rank-bar-fill" style="width:${Math.round(n/max*100)}%"></div></div>
+          <span class="rpt-rank-cnt">${n}</span>
+          ${i===0?'<span style="font-size:10px;background:#FDEAEA;color:#E84343;padding:1px 6px;border-radius:20px;font-weight:700;">↑</span>':''}
+          ${n===1?'<span style="font-size:10px;background:#E2F8EE;color:#2DBF7E;padding:1px 6px;border-radius:20px;font-weight:700;">✓</span>':''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="rpt-card">
+      <div class="rpt-section-lbl">Histórico Recente com Cobranças</div>
+      ${allChamados.filter(c=>c.cobr_count>0).slice(0,6).map(c=>{
+        const SCOR={Aberto:'#F4A742','Em andamento':'#4A78E8',Resolvido:'#2DBF7E'};
+        return `<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #EDE8EC;align-items:flex-start;">
+          <div style="width:6px;height:6px;border-radius:50%;background:${SCOR[c.status]||'#ccc'};margin-top:5px;flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||c.id}</div>
+            <div style="font-size:11px;color:#7A6A74;">${short(c.loja)} · ${c.data}</div>
+          </div>
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:#E8436A;font-weight:700;flex-shrink:0;">💬 ${c.cobr_count}x</span>
+        </div>`;
+      }).join('')||'<div style="font-size:12px;color:#7A6A74;text-align:center;padding:20px;">Nenhum chamado com cobranças</div>'}
+    </div>
+  </div>
+
+  <!-- FOOTER PRINT -->
+  <div style="border-top:1px solid #EDE8EC;padding-top:14px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#7A6A74;">
+    <div>TI Central · Mais q Make · ${now}</div>
+    <div style="font-family:'DM Mono',monospace;">${T} chamados · ${taxa}% resolvidos · ${cobT} cobranças</div>
+  </div>
+  `;
 }
 function printRelatorio(){window.print();}
 
