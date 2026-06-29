@@ -337,6 +337,7 @@ tbody tr:hover{background:var(--cream);}
           <option value="">Todos os Tipos</option>
           <option>Bug</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option>
         </select>
+        <select id="f-depto" onchange="renderTodos()"><option value="">Todos os Departamentos</option><option>Operacional</option><option>Caixa</option><option>Estoque</option><option>Administrativo</option><option>Gerência</option><option>RH</option><option>Financeiro</option><option>Marketing</option><option>TI</option></select>
         <select id="f-status" onchange="renderTodos()">
           <option value="">Todos os Status</option>
           <option>Aberto</option><option>Em andamento</option><option>Resolvido</option>
@@ -371,6 +372,10 @@ tbody tr:hover{background:var(--cream);}
     <div class="fr">
       <div class="fg"><label>Loja / Unidade</label><select id="n-loja"></select></div>
       <div class="fg"><label>Solicitante</label><input id="n-user" type="text" placeholder="Nome do usuário"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Departamento</label><select id="n-depto"><option>Operacional</option><option>Caixa</option><option>Estoque</option><option>Administrativo</option><option>Gerência</option><option>RH</option><option>Financeiro</option><option>Marketing</option><option>TI</option></select></div>
+      <div class="fg"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Tipo</label><select id="n-tipo"><option>Bug</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option></select></div>
@@ -416,6 +421,7 @@ tbody tr:hover{background:var(--cream);}
         <div style="grid-column:span 2"><div class="df-lbl">Título</div><div class="df-val" id="det-titulo" style="font-size:15px;"></div></div>
         <div><div class="df-lbl">Loja</div><div class="df-val" id="det-loja"></div></div>
         <div><div class="df-lbl">Solicitante</div><div class="df-val" id="det-user"></div></div>
+        <div><div class="df-lbl">Departamento</div><div class="df-val" id="det-depto"></div></div>
         <div><div class="df-lbl">Tipo</div><div class="df-val" id="det-tipo"></div></div>
         <div><div class="df-lbl">Sistema</div><div class="df-val" id="det-sist"></div></div>
         <div><div class="df-lbl">Prioridade</div><div class="df-val" id="det-prio"></div></div>
@@ -494,6 +500,10 @@ tbody tr:hover{background:var(--cream);}
     <div class="fr">
       <div class="fg"><label>Loja / Unidade</label><select id="e-loja"></select></div>
       <div class="fg"><label>Solicitante</label><input id="e-user" type="text"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Departamento</label><select id="e-depto"><option>Operacional</option><option>Caixa</option><option>Estoque</option><option>Administrativo</option><option>Gerência</option><option>RH</option><option>Financeiro</option><option>Marketing</option><option>TI</option></select></div>
+      <div class="fg"></div>
     </div>
     <div class="fr">
       <div class="fg"><label>Tipo</label><select id="e-tipo"><option>Bug</option><option>Dúvida</option><option>Implementação</option><option>Infraestrutura</option></select></div>
@@ -700,11 +710,12 @@ function renderRecent(){
 // ══ TABELA ══
 function tblHTML(rows){
   if(!rows.length) return '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink-60)">Nenhum chamado encontrado</td></tr>';
-  return `<thead><tr><th>ID</th><th>Título</th><th>Loja</th><th>Usuário</th><th>Tipo</th><th>Sistema</th><th>Prioridade</th><th>Status</th><th>Cobranças</th><th>Data</th></tr></thead>
+  return `<thead><tr><th>ID</th><th>Título</th><th>Loja</th><th>Depto</th><th>Usuário</th><th>Tipo</th><th>Sistema</th><th>Prioridade</th><th>Status</th><th>Cobranças</th><th>Data</th></tr></thead>
   <tbody>${rows.map(c=>`<tr onclick="openDetail('${c.id}')">
     <td class="id-code">${c.id}</td>
-    <td style="font-weight:500;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||'—'}</td>
+    <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||'—'}</td>
     <td><span class="loja-pill">${short(c.loja)}</span></td>
+    <td><span style="font-size:11px;background:var(--purple-lt);color:var(--purple);padding:2px 7px;border-radius:6px;font-weight:500;">${c.departamento||'—'}</span></td>
     <td>${c.usuario}</td>
     <td>${chip(c.tipo)}</td>
     <td style="font-size:12px;color:var(--ink-60)">${c.sistema}</td>
@@ -720,7 +731,8 @@ function renderTodos(){
   const loja=$('f-loja')?.value||'';
   const tipo=$('f-tipo')?.value||'';
   const stat=$('f-status')?.value||'';
-  const f=allChamados.filter(c=>(!loja||c.loja===loja)&&(!tipo||c.tipo===tipo)&&(!stat||c.status===stat)&&(!busca||c.loja.toLowerCase().includes(busca)||c.usuario.toLowerCase().includes(busca)||(c.descricao||'').toLowerCase().includes(busca)));
+  const depto=$('f-depto')?.value||'';
+  const f=allChamados.filter(c=>(!loja||c.loja===loja)&&(!tipo||c.tipo===tipo)&&(!stat||c.status===stat)&&(!depto||c.departamento===depto)&&(!busca||c.loja.toLowerCase().includes(busca)||c.usuario.toLowerCase().includes(busca)||(c.descricao||'').toLowerCase().includes(busca)));
   $('tbl-todos').innerHTML=tblHTML(f);
 }
 
@@ -746,7 +758,7 @@ async function saveChamado(){
   btn.textContent='Salvando…';btn.disabled=true;
   try{
     setSyncing(true);
-    const c={id:genId(),titulo,loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today(),data_abertura:$('n-data-abertura').value||null,data_chamado:$('n-data-chamado').value||null};
+    const c={id:genId(),titulo,loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today(),data_abertura:$('n-data-abertura').value||null,data_chamado:$('n-data-chamado').value||null,departamento:$('n-depto').value};
     await sbPost('chamados',c);
     closeOv('ov-novo');
     $('n-titulo').value='';$('n-user').value='';$('n-desc').value='';
@@ -770,6 +782,7 @@ async function openDetail(id){
   $('det-data-chamado').textContent=c.data_chamado||'—';
   $('det-loja').textContent=c.loja;
   $('det-user').textContent=c.usuario;
+  $('det-depto').textContent=c.departamento||'—';
   $('det-tipo').innerHTML=chip(c.tipo);
   $('det-sist').textContent=c.sistema;
   $('det-prio').innerHTML=`<span style="font-weight:600;color:${PRIO_COR[c.prioridade]||'#ccc'}">${c.prioridade}</span>`;
@@ -865,6 +878,7 @@ function openEdit(){
   $('e-desc').value  = ch.descricao||'';
   $('e-sist').value  = ch.sistema;
   $('e-stat').value  = ch.status;
+  $('e-depto').value = ch.departamento||'Operacional';
   $('e-data-abertura').value = ch.data_abertura||'';
   $('e-data-chamado').value  = ch.data_chamado||'';
   closeOv('ov-det');
@@ -876,7 +890,7 @@ async function saveEdit(){
   const btn=$('btn-save-edit'); btn.textContent='Salvando…'; btn.disabled=true;
   try{
     setSyncing(true);
-    const upd={titulo,loja:$('e-loja').value,usuario:user,tipo:$('e-tipo').value,prioridade:$('e-prio').value,sistema:$('e-sist').value,descricao:desc,status:$('e-stat').value,data_abertura:$('e-data-abertura').value||null,data_chamado:$('e-data-chamado').value||null};
+    const upd={titulo,loja:$('e-loja').value,usuario:user,tipo:$('e-tipo').value,prioridade:$('e-prio').value,sistema:$('e-sist').value,descricao:desc,status:$('e-stat').value,data_abertura:$('e-data-abertura').value||null,data_chamado:$('e-data-chamado').value||null,departamento:$('e-depto').value};
     await sbPatch('chamados','id=eq.'+currentId, upd);
     closeOv('ov-edit');
     await loadAll();
@@ -997,6 +1011,12 @@ function renderRelatorio(){
   allChamados.forEach(function(c){if(c.cobr_count)cobTip[c.tipo]=(cobTip[c.tipo]||0)+c.cobr_count;});
   const priCnt={Crítica:0,Alta:0,Média:0,Baixa:0};
   allChamados.forEach(function(c){if(priCnt[c.prioridade]!==undefined)priCnt[c.prioridade]++;});
+
+  // Departamento counts
+  const deptCnt={};
+  allChamados.forEach(function(ch){if(ch.departamento)deptCnt[ch.departamento]=(deptCnt[ch.departamento]||0)+1;});
+  const deptEntries=Object.entries(deptCnt).sort(function(a,b){return b[1]-a[1];});
+  const topDept=deptEntries[0]||null;
 
   // ── Donut SVG ──
   function buildDonut(vals,colors){
@@ -1134,6 +1154,29 @@ function renderRelatorio(){
     critHTML+='</div>';
   }
 
+  // ── Departamentos HTML ──
+  var deptHTML='';
+  if(deptEntries.length>0){
+    var maxDept=deptEntries[0][1]||1;
+    var DCOLORS=['#E8436A','#F4A742','#4A78E8','#9B59D0','#2DBF7E','#7A6A74','#E84343','#16a766','#b87a00'];
+    deptEntries.forEach(function(e,i){
+      var d=e[0], n=e[1];
+      var pct=Math.round(n/T*100);
+      var barW=Math.round((n/maxDept)*100);
+      var cor=DCOLORS[i%DCOLORS.length];
+      deptHTML+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+        +'<span style="font-size:12px;min-width:90px;font-weight:'+(i===0?'600':'400')+';color:'+(i===0?cor:'#1A1018')+'">'+d+'</span>'
+        +'<div style="flex:1;height:8px;background:#EDE8EC;border-radius:10px;">'
+          +'<div style="height:100%;border-radius:10px;background:'+cor+';width:'+barW+'%;"></div>'
+        +'</div>'
+        +'<span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;min-width:20px;text-align:right;">'+n+'</span>'
+        +'<span style="font-size:11px;color:#7A6A74;min-width:30px;">'+pct+'%</span>'
+        +'</div>';
+    });
+  } else {
+    deptHTML='<div style="font-size:12px;color:#7A6A74;text-align:center;padding:20px;">Nenhum chamado com departamento informado ainda</div>';
+  }
+
   // ── Tabela abertos ──
   var tblHTML2='';
   var abertos=allChamados.filter(function(c){return c.status==='Aberto';});
@@ -1249,6 +1292,7 @@ function renderRelatorio(){
       +'<strong>'+ab+' em aberto</strong> e <strong>'+crit.length+' crítico(s)</strong>. '
       +'<strong>'+cobT+' cobranças ao suporte</strong> via WhatsApp. '
       +(topLoja[0]!=='—'?'Unidade <strong>'+short(topLoja[0])+'</strong> lidera com '+topLoja[1]+' ocorrências. ':'')
+      +(topDept?'Departamento com mais chamados: <strong>'+topDept[0]+'</strong>. ':'')
       +'Tipo mais frequente: <strong>'+topTipo[0]+'</strong>.'
     +'</div>'
     +'<div style="margin-top:20px;" class="rpt-noprint">'
@@ -1305,6 +1349,12 @@ function renderRelatorio(){
   html+='<div style="background:linear-gradient(135deg,#EBF0FD,#F2EAFA);border-radius:12px;padding:16px 18px;margin-bottom:16px;font-size:13px;line-height:1.7;">'
     +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9B59D0;font-weight:700;margin-bottom:8px;">📊 Análise do Período</div>'
     +insightTxt
+    +'</div>';
+
+  // Departamentos card
+  html+='<div class="rpt-card" style="margin-bottom:16px;">'
+    +'<div class="rpt-slbl">Chamados por Departamento</div>'
+    +deptHTML
     +'</div>';
 
   // Tabela abertos
