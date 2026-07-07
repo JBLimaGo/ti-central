@@ -286,6 +286,8 @@ tbody tr:hover{background:var(--cream);}
     <div class="nav-label">Principal</div>
     <div class="nav-item active" onclick="navTo('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
     <div class="nav-item" onclick="navTo('chamados')"><span class="nav-ico">🎫</span>Chamados<span class="nav-badge" id="badge-open">0</span></div>
+    <div class="nav-label">Lojas</div>
+    <div class="nav-item" onclick="navTo('loja-chamados')"><span class="nav-ico">📝</span>Chamados de Loja<span class="nav-badge" id="badge-loja" style="background:var(--blue);">0</span></div>
     <div class="nav-label">Análises</div>
     <div class="nav-item" onclick="navTo('lojas')"><span class="nav-ico">🏪</span>Por Loja</div>
     <div class="nav-item" onclick="navTo('relatorio')"><span class="nav-ico">📋</span>Relatório</div>
@@ -344,6 +346,36 @@ tbody tr:hover{background:var(--cream);}
         </select>
       </div>
       <div class="card"><div class="tbl-wrap"><table id="tbl-todos"></table></div></div>
+    </div>
+
+    <!-- CHAMADOS DE LOJA -->
+    <div class="panel" id="panel-loja-chamados">
+
+      <!-- HERO SIMPLES -->
+      <div style="background:linear-gradient(135deg,#1A1018,#2d1a28);border-radius:14px;padding:24px 28px;margin-bottom:20px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+          <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px;">Mais q Make · Lojas</div>
+          <div style="font-size:20px;font-weight:400;margin-bottom:4px;">Chamados Abertos pelas Lojas</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.45);">Registre os chamados enviados pelas colaboradoras via WhatsApp</div>
+        </div>
+        <button class="btn btn-primary" onclick="openNovoLoja()">＋ Novo Chamado de Loja</button>
+      </div>
+
+      <!-- KPI SIMPLES -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="loja-kpis"></div>
+
+      <!-- FILTROS -->
+      <div class="filters" style="margin-bottom:14px;">
+        <input type="text" id="fl-busca" placeholder="🔍 Buscar por título, colaboradora, ticket…" oninput="renderLojaChamados()" style="max-width:300px;">
+        <select id="fl-loja" onchange="renderLojaChamados()"><option value="">Todas as Lojas</option></select>
+        <select id="fl-status" onchange="renderLojaChamados()">
+          <option value="">Todos os Status</option>
+          <option>Pendente</option><option>Em atendimento</option><option>Resolvido</option>
+        </select>
+      </div>
+
+      <!-- TABELA -->
+      <div class="card"><div class="tbl-wrap"><table id="tbl-loja-chamados"></table></div></div>
     </div>
 
     <!-- LOJAS -->
@@ -526,6 +558,68 @@ tbody tr:hover{background:var(--cream);}
 </div>
 </div>
 
+<!-- ══ MODAL NOVO CHAMADO LOJA ══ -->
+<div class="overlay" id="ov-loja-novo" onclick="ovClose(event,'ov-loja-novo')">
+<div class="modal">
+  <div class="modal-hdr">
+    <div>
+      <div class="modal-ttl">📝 Novo Chamado de Loja</div>
+      <div class="modal-sub">Registre o chamado enviado pela colaboradora via WhatsApp</div>
+    </div>
+    <button class="modal-x" onclick="closeOv('ov-loja-novo')">✕</button>
+  </div>
+  <div class="modal-bdy">
+    <div class="fr">
+      <div class="fg"><label>Loja</label><select id="ln-loja"><option>CD (Centro de Distribuição)</option><option>Shopping Cidade</option><option>Via Shopping</option><option>BIG</option><option>Estação BH</option><option>Shopping Del Rey</option><option>Shopping Contagem</option><option>Itaú</option><option>Minas Shopping</option><option>Partage</option></select></div>
+      <div class="fg"><label>Colaboradora</label><input id="ln-colab" type="text" placeholder="Nome da funcionária"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Nº do Ticket (sistema)</label><input id="ln-ticket" type="text" placeholder="Ex: 80006067"></div>
+      <div class="fg"><label>Data de Abertura</label><input type="date" id="ln-data"></div>
+    </div>
+    <div class="fg"><label>Descrição do Chamado</label>
+      <textarea id="ln-desc" placeholder="Descreva o problema exatamente como a colaboradora informou via WhatsApp…" style="min-height:100px;"></textarea>
+    </div>
+    <div class="fg"><label>Status</label>
+      <select id="ln-status">
+        <option>Pendente</option><option>Em atendimento</option><option>Resolvido</option>
+      </select>
+    </div>
+  </div>
+  <div class="modal-ftr">
+    <button class="btn btn-ghost" onclick="closeOv('ov-loja-novo')">Cancelar</button>
+    <button class="btn btn-primary" id="btn-salvar-loja" onclick="salvarLojaChamado()">Salvar Chamado</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ MODAL DETALHE CHAMADO LOJA ══ -->
+<div class="overlay" id="ov-loja-det" onclick="ovClose(event,'ov-loja-det')">
+<div class="modal">
+  <div class="modal-hdr">
+    <div><div class="modal-ttl" id="ldet-ttl">Chamado de Loja</div><div class="modal-sub" id="ldet-sub"></div></div>
+    <button class="modal-x" onclick="closeOv('ov-loja-det')">✕</button>
+  </div>
+  <div class="modal-bdy">
+    <div class="detail-grid" style="margin-bottom:16px;">
+      <div><div class="df-lbl">Loja</div><div class="df-val" id="ldet-loja"></div></div>
+      <div><div class="df-lbl">Colaboradora</div><div class="df-val" id="ldet-colab"></div></div>
+      <div><div class="df-lbl">Ticket Nº</div><div class="df-val id-code" id="ldet-ticket"></div></div>
+      <div><div class="df-lbl">Data</div><div class="df-val" id="ldet-data"></div></div>
+    </div>
+    <div style="margin-bottom:16px;"><div class="df-lbl" style="margin-bottom:6px;">Descrição</div><div class="desc-box" id="ldet-desc"></div></div>
+    <div class="fg"><label>Status</label>
+      <select id="ldet-status-sel" style="font-size:13px;padding:8px 12px;border:1.5px solid var(--ink-20);border-radius:8px;width:100%;font-family:inherit;" onchange="atualizarStatusLoja()">
+        <option>Pendente</option><option>Em atendimento</option><option>Resolvido</option>
+      </select>
+    </div>
+  </div>
+  <div class="modal-ftr">
+    <button class="btn btn-ghost" onclick="closeOv('ov-loja-det')">Fechar</button>
+  </div>
+</div>
+</div>
+
 <!-- LIGHTBOX -->
 <div class="lbox" id="lbox" onclick="closeLbox()">
   <button class="lbox-x" onclick="closeLbox()">✕</button>
@@ -566,6 +660,7 @@ const PRIO_COR={'Crítica':'#E84343','Alta':'#F4A742','Média':'#4A78E8','Baixa'
 
 // ══ STATE ══
 let allChamados=[], currentId=null, ncImgs=[], detTabIdx=0;
+let allLojaChamados=[], currentLojaChamadoId=null;
 
 // ══ UTILS ══
 const $ = id => document.getElementById(id);
@@ -599,11 +694,12 @@ function navTo(tab){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   $('panel-'+tab).classList.add('active');
-  const idx={dashboard:0,chamados:1,lojas:2,relatorio:3};
+  const idx={dashboard:0,chamados:1,'loja-chamados':2,lojas:3,relatorio:4};
   try{const ni=document.querySelectorAll('.nav-item')[idx[tab]||0];if(ni)ni.classList.add('active');}catch(e){}
-  $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados',lojas:'Por Loja',relatorio:'Relatório'}[tab]||tab;
+  $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados',lojas:'Por Loja',relatorio:'Relatório','loja-chamados':'Chamados de Loja'}[tab]||tab;
   closeSidebar();
   if(tab==='lojas') renderLojas();
+  if(tab==='loja-chamados'){ renderLojaChamadosKPIs(); renderLojaChamados(); populateFlLoja(); }
   if(tab==='relatorio') setTimeout(renderRelatorio, 0);
   if(tab==='chamados') renderTodos();
 }
@@ -617,8 +713,14 @@ async function loadAll(){
     allChamados = chs.map(c=>({...c, cobr_count: c.cobrancas?.length||0}));
   } catch(e){ toast('⚠ Erro ao carregar dados: '+e.message); }
   setSyncing(false);
+  // Carregar chamados de loja
+  try{
+    const lc = await sbGet('loja_chamados','select=*&order=created_at.desc');
+    allLojaChamados = lc;
+  } catch(e){ console.warn('loja_chamados:', e.message); }
   renderDashboard();
   populateSelects();
+  renderLojaChamadosKPIs();
 }
 
 // ══ DASHBOARD ══
@@ -947,6 +1049,139 @@ async function saveCobranca(){
     renderKPIs();renderTipos();
     toast('💬 Cobrança #'+seq+' registrada!');
   }catch(e){toast('⚠ Erro ao salvar: '+e.message);}finally{btn.textContent='💾 Salvar Cobrança';btn.disabled=false;setSyncing(false);}
+}
+
+
+// ══ CHAMADOS DE LOJA ══
+function populateFlLoja(){
+  const fl=$('fl-loja');
+  if(fl&&fl.options.length<=1){
+    ['CD (Centro de Distribuição)','Shopping Cidade','Via Shopping','BIG','Estação BH','Shopping Del Rey','Shopping Contagem','Itaú','Minas Shopping','Partage'].forEach(function(l){
+      var o=document.createElement('option');o.value=l;o.textContent=l;fl.appendChild(o);
+    });
+  }
+}
+
+function renderLojaChamadosKPIs(){
+  const total=allLojaChamados.length;
+  const pend=allLojaChamados.filter(function(c){return c.status==='Pendente';}).length;
+  const atend=allLojaChamados.filter(function(c){return c.status==='Em atendimento';}).length;
+  const res=allLojaChamados.filter(function(c){return c.status==='Resolvido';}).length;
+  $('badge-loja').textContent=pend+atend;
+  var el=$('loja-kpis');
+  if(!el) return;
+  el.innerHTML=
+    '<div style="background:#fff;border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--rose);position:relative;overflow:hidden;">'
+      +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-60);font-weight:600;">Total</div>'
+      +'<div style="font-size:30px;font-weight:300;margin:5px 0 3px;color:var(--rose);">'+total+'</div>'
+      +'<div style="font-size:11px;color:var(--ink-60);">chamados registrados</div>'
+      +'<span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.08;">📝</span>'
+    +'</div>'
+    +'<div style="background:#fff;border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--amber);position:relative;overflow:hidden;">'
+      +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-60);font-weight:600;">Pendentes</div>'
+      +'<div style="font-size:30px;font-weight:300;margin:5px 0 3px;color:var(--amber);">'+pend+'</div>'
+      +'<div style="font-size:11px;color:'+(pend>0?'var(--amber)':'var(--ink-60)')+';">'+(pend>0?'⚠ Aguardando TI':'Tudo ok')+'</div>'
+      +'<span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.08;">⏳</span>'
+    +'</div>'
+    +'<div style="background:#fff;border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--blue);position:relative;overflow:hidden;">'
+      +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-60);font-weight:600;">Em Atendimento</div>'
+      +'<div style="font-size:30px;font-weight:300;margin:5px 0 3px;color:var(--blue);">'+atend+'</div>'
+      +'<div style="font-size:11px;color:var(--ink-60);">em tratativa</div>'
+      +'<span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.08;">🔧</span>'
+    +'</div>'
+    +'<div style="background:#fff;border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);border-top:3px solid var(--green);position:relative;overflow:hidden;">'
+      +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-60);font-weight:600;">Resolvidos</div>'
+      +'<div style="font-size:30px;font-weight:300;margin:5px 0 3px;color:var(--green);">'+res+'</div>'
+      +'<div style="font-size:11px;color:var(--green);">✓ '+(total?Math.round(res/total*100):0)+'% do total</div>'
+      +'<span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.08;">✅</span>'
+    +'</div>';
+}
+
+function renderLojaChamados(){
+  var busca=($('fl-busca')?.value||'').toLowerCase();
+  var loja=$('fl-loja')?.value||'';
+  var stat=$('fl-status')?.value||'';
+  var f=allLojaChamados.filter(function(c){
+    return (!loja||c.loja===loja)
+      &&(!stat||c.status===stat)
+      &&(!busca||(c.titulo||'').toLowerCase().includes(busca)||(c.colaboradora||'').toLowerCase().includes(busca)||(c.ticket||'').toLowerCase().includes(busca)||(c.descricao||'').toLowerCase().includes(busca));
+  });
+  var SCOR={Pendente:'b-aberto','Em atendimento':'b-andamento',Resolvido:'b-resolvido'};
+  var html='';
+  if(!f.length){
+    $('tbl-loja-chamados').innerHTML='<tr><td colspan="7" style="text-align:center;padding:36px;color:var(--ink-60);"><div style="font-size:28px;margin-bottom:8px">📭</div>Nenhum chamado encontrado.</td></tr>';
+    return;
+  }
+  html='<thead><tr>'
+    +'<th>Ticket Nº</th><th>Loja</th><th>Colaboradora</th><th>Descrição</th><th>Status</th><th>Data</th><th></th>'
+    +'</tr></thead><tbody>';
+  f.forEach(function(c){
+    html+='<tr>'
+      +'<td><span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;background:var(--blue-lt);color:var(--blue);padding:2px 9px;border-radius:6px;">#'+(c.ticket||'—')+'</span></td>'
+      +'<td><span class="loja-pill">'+c.loja+'</span></td>'
+      +'<td style="font-weight:500;">'+c.colaboradora+'</td>'
+      +'<td style="font-size:12px;color:var(--ink-60);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.descricao||'—')+'</td>'
+      +'<td><span class="badge '+(SCOR[c.status]||'b-aberto')+'">'+c.status+'</span></td>'
+      +'<td style="font-size:12px;color:var(--ink-60);">'+(c.data_abertura||c.data||'—')+'</td>'
+      +'<td><button class="btn btn-ghost btn-sm" onclick="abrirDetalheLoja('+c.id+')">Ver ▸</button></td>'
+      +'</tr>';
+  });
+  html+='</tbody>';
+  $('tbl-loja-chamados').innerHTML=html;
+}
+
+function openNovoLoja(){
+  $('ln-data').value=today();
+  $('ov-loja-novo').classList.add('open');
+}
+
+async function salvarLojaChamado(){
+  var colab=$('ln-colab').value.trim();
+  var desc=$('ln-desc').value.trim();
+  var ticket=$('ln-ticket').value.trim();
+  if(!colab||!desc){toast('⚠ Preencha colaboradora e descrição.');return;}
+  var btn=$('btn-salvar-loja');btn.textContent='Salvando…';btn.disabled=true;
+  try{
+    setSyncing(true);
+    var row={loja:$('ln-loja').value,colaboradora:colab,ticket:ticket||null,data_abertura:$('ln-data').value||null,descricao:desc,status:$('ln-status').value};
+    var res=await sbPost('loja_chamados',row);
+    allLojaChamados.unshift(res[0]);
+    closeOv('ov-loja-novo');
+    $('ln-colab').value='';$('ln-desc').value='';$('ln-ticket').value='';
+    renderLojaChamadosKPIs();
+    renderLojaChamados();
+    toast('✅ Chamado de loja registrado!');
+  }catch(e){toast('⚠ Erro: '+e.message);}
+  finally{btn.textContent='Salvar Chamado';btn.disabled=false;setSyncing(false);}
+}
+
+function abrirDetalheLoja(id){
+  currentLojaChamadoId=id;
+  var c=allLojaChamados.find(function(x){return x.id===id;});
+  if(!c)return;
+  $('ldet-ttl').textContent='Ticket #'+(c.ticket||'—')+' — '+c.loja;
+  $('ldet-sub').textContent=c.colaboradora+' · '+(c.data_abertura||c.data||'');
+  $('ldet-loja').textContent=c.loja;
+  $('ldet-colab').textContent=c.colaboradora;
+  $('ldet-ticket').textContent=c.ticket||'—';
+  $('ldet-data').textContent=c.data_abertura||c.data||'—';
+  $('ldet-desc').textContent=c.descricao||'';
+  $('ldet-status-sel').value=c.status;
+  $('ov-loja-det').classList.add('open');
+}
+
+async function atualizarStatusLoja(){
+  var ns=$('ldet-status-sel').value;
+  try{
+    setSyncing(true);
+    await sbPatch('loja_chamados','id=eq.'+currentLojaChamadoId,{status:ns});
+    var c=allLojaChamados.find(function(x){return x.id===currentLojaChamadoId;});
+    if(c) c.status=ns;
+    renderLojaChamadosKPIs();
+    renderLojaChamados();
+    toast('✅ Status atualizado para: '+ns);
+  }catch(e){toast('⚠ Erro: '+e.message);}
+  finally{setSyncing(false);}
 }
 
 // ══ LOJAS ══
