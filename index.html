@@ -593,29 +593,34 @@ tbody tr:hover{background:var(--cream);}
 </div>
 </div>
 
-<!-- ══ MODAL DETALHE CHAMADO LOJA ══ -->
+<!-- ══ MODAL EDITAR CHAMADO LOJA ══ -->
 <div class="overlay" id="ov-loja-det" onclick="ovClose(event,'ov-loja-det')">
 <div class="modal">
   <div class="modal-hdr">
-    <div><div class="modal-ttl" id="ldet-ttl">Chamado de Loja</div><div class="modal-sub" id="ldet-sub"></div></div>
+    <div><div class="modal-ttl" id="ldet-ttl">Editar Chamado de Loja</div><div class="modal-sub" id="ldet-sub"></div></div>
     <button class="modal-x" onclick="closeOv('ov-loja-det')">✕</button>
   </div>
   <div class="modal-bdy">
-    <div class="detail-grid" style="margin-bottom:16px;">
-      <div><div class="df-lbl">Loja</div><div class="df-val" id="ldet-loja"></div></div>
-      <div><div class="df-lbl">Colaboradora</div><div class="df-val" id="ldet-colab"></div></div>
-      <div><div class="df-lbl">Ticket Nº</div><div class="df-val id-code" id="ldet-ticket"></div></div>
-      <div><div class="df-lbl">Data</div><div class="df-val" id="ldet-data"></div></div>
+    <div class="fr">
+      <div class="fg"><label>Loja</label><select id="ldet-loja"><option>CD (Centro de Distribuição)</option><option>Shopping Cidade</option><option>Via Shopping</option><option>BIG</option><option>Estação BH</option><option>Shopping Del Rey</option><option>Shopping Contagem</option><option>Itaú</option><option>Minas Shopping</option><option>Partage</option></select></div>
+      <div class="fg"><label>Colaboradora</label><input type="text" id="ldet-colab" placeholder="Nome da funcionária"></div>
     </div>
-    <div style="margin-bottom:16px;"><div class="df-lbl" style="margin-bottom:6px;">Descrição</div><div class="desc-box" id="ldet-desc"></div></div>
+    <div class="fr">
+      <div class="fg"><label>Nº do Ticket (sistema)</label><input type="text" id="ldet-ticket" placeholder="Ex: 80006067"></div>
+      <div class="fg"><label>Data de Abertura</label><input type="date" id="ldet-data"></div>
+    </div>
+    <div class="fg"><label>Descrição do Chamado</label>
+      <textarea id="ldet-desc" placeholder="Descrição enviada via WhatsApp…" style="min-height:100px;"></textarea>
+    </div>
     <div class="fg"><label>Status</label>
-      <select id="ldet-status-sel" style="font-size:13px;padding:8px 12px;border:1.5px solid var(--ink-20);border-radius:8px;width:100%;font-family:inherit;" onchange="atualizarStatusLoja()">
+      <select id="ldet-status-sel">
         <option>Pendente</option><option>Em atendimento</option><option>Resolvido</option>
       </select>
     </div>
   </div>
   <div class="modal-ftr">
-    <button class="btn btn-ghost" onclick="closeOv('ov-loja-det')">Fechar</button>
+    <button class="btn btn-ghost" onclick="closeOv('ov-loja-det')">Cancelar</button>
+    <button class="btn btn-primary" id="btn-salvar-loja-edit" onclick="salvarEdicaoLoja()">💾 Salvar Alterações</button>
   </div>
 </div>
 </div>
@@ -1123,7 +1128,7 @@ function renderLojaChamados(){
       +'<td style="font-size:12px;color:var(--ink-60);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.descricao||'—')+'</td>'
       +'<td><span class="badge '+(SCOR[c.status]||'b-aberto')+'">'+c.status+'</span></td>'
       +'<td style="font-size:12px;color:var(--ink-60);">'+(c.data_abertura||c.data||'—')+'</td>'
-      +'<td><button class="btn btn-ghost btn-sm" onclick="abrirDetalheLoja('+c.id+')">Ver ▸</button></td>'
+      +'<td><button class="btn btn-ghost btn-sm" onclick="abrirDetalheLoja('+c.id+')">✏️ Editar</button></td>'
       +'</tr>';
   });
   html+='</tbody>';
@@ -1159,29 +1164,41 @@ function abrirDetalheLoja(id){
   currentLojaChamadoId=id;
   var c=allLojaChamados.find(function(x){return x.id===id;});
   if(!c)return;
-  $('ldet-ttl').textContent='Ticket #'+(c.ticket||'—')+' — '+c.loja;
-  $('ldet-sub').textContent=c.colaboradora+' · '+(c.data_abertura||c.data||'');
-  $('ldet-loja').textContent=c.loja;
-  $('ldet-colab').textContent=c.colaboradora;
-  $('ldet-ticket').textContent=c.ticket||'—';
-  $('ldet-data').textContent=c.data_abertura||c.data||'—';
-  $('ldet-desc').textContent=c.descricao||'';
+  $('ldet-ttl').textContent='Editar — Ticket #'+(c.ticket||'—');
+  $('ldet-sub').textContent=c.loja+' · '+c.colaboradora;
+  $('ldet-loja').value=c.loja;
+  $('ldet-colab').value=c.colaboradora||'';
+  $('ldet-ticket').value=c.ticket||'';
+  $('ldet-data').value=c.data_abertura||'';
+  $('ldet-desc').value=c.descricao||'';
   $('ldet-status-sel').value=c.status;
   $('ov-loja-det').classList.add('open');
 }
 
-async function atualizarStatusLoja(){
-  var ns=$('ldet-status-sel').value;
+async function salvarEdicaoLoja(){
+  var colab=$('ldet-colab').value.trim();
+  var desc=$('ldet-desc').value.trim();
+  if(!colab||!desc){toast('⚠ Preencha colaboradora e descrição.');return;}
+  var btn=$('btn-salvar-loja-edit');btn.textContent='Salvando…';btn.disabled=true;
   try{
     setSyncing(true);
-    await sbPatch('loja_chamados','id=eq.'+currentLojaChamadoId,{status:ns});
-    var c=allLojaChamados.find(function(x){return x.id===currentLojaChamadoId;});
-    if(c) c.status=ns;
+    var upd={
+      loja:$('ldet-loja').value,
+      colaboradora:colab,
+      ticket:$('ldet-ticket').value.trim()||null,
+      data_abertura:$('ldet-data').value||null,
+      descricao:desc,
+      status:$('ldet-status-sel').value
+    };
+    await sbPatch('loja_chamados','id=eq.'+currentLojaChamadoId,upd);
+    var ch=allLojaChamados.find(function(x){return x.id===currentLojaChamadoId;});
+    if(ch) Object.assign(ch,upd);
+    closeOv('ov-loja-det');
     renderLojaChamadosKPIs();
     renderLojaChamados();
-    toast('✅ Status atualizado para: '+ns);
+    toast('✅ Chamado atualizado!');
   }catch(e){toast('⚠ Erro: '+e.message);}
-  finally{setSyncing(false);}
+  finally{btn.textContent='💾 Salvar Alterações';btn.disabled=false;setSyncing(false);}
 }
 
 // ══ LOJAS ══
