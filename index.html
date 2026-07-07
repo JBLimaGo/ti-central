@@ -732,7 +732,7 @@ function renderTodos(){
   const tipo=$('f-tipo')?.value||'';
   const stat=$('f-status')?.value||'';
   const depto=$('f-depto')?.value||'';
-  const f=allChamados.filter(c=>(!loja||c.loja===loja)&&(!tipo||c.tipo===tipo)&&(!stat||c.status===stat)&&(!depto||c.departamento===depto)&&(!busca||c.loja.toLowerCase().includes(busca)||c.usuario.toLowerCase().includes(busca)||(c.descricao||'').toLowerCase().includes(busca)));
+  const f=allChamados.filter(c=>(!loja||c.loja===loja)&&(!tipo||c.tipo===tipo)&&(!stat||c.status===stat)&&(!depto||c.departamento===depto)&&(!busca||(c.titulo||'').toLowerCase().includes(busca)||c.loja.toLowerCase().includes(busca)||c.usuario.toLowerCase().includes(busca)||(c.descricao||'').toLowerCase().includes(busca)));
   $('tbl-todos').innerHTML=tblHTML(f);
 }
 
