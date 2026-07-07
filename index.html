@@ -285,7 +285,7 @@ tbody tr:hover{background:var(--cream);}
   <div class="nav">
     <div class="nav-label">Principal</div>
     <div class="nav-item active" onclick="navTo('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
-    <div class="nav-item" onclick="navTo('chamados')"><span class="nav-ico">🎫</span>Chamados<span class="nav-badge" id="badge-open">0</span></div>
+    <div class="nav-item" onclick="navTo('chamados')"><span class="nav-ico">🎫</span>Chamados TI<span class="nav-badge" id="badge-ti">0</span></div>
     <div class="nav-label">Lojas</div>
     <div class="nav-item" onclick="navTo('loja-chamados')"><span class="nav-ico">📝</span>Chamados de Loja<span class="nav-badge" id="badge-loja" style="background:var(--blue);">0</span></div>
     <div class="nav-label">Análises</div>
@@ -696,7 +696,7 @@ function navTo(tab){
   $('panel-'+tab).classList.add('active');
   const idx={dashboard:0,chamados:1,'loja-chamados':2,lojas:3,relatorio:4};
   try{const ni=document.querySelectorAll('.nav-item')[idx[tab]||0];if(ni)ni.classList.add('active');}catch(e){}
-  $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados',lojas:'Por Loja',relatorio:'Relatório','loja-chamados':'Chamados de Loja'}[tab]||tab;
+  $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados TI',lojas:'Por Loja',relatorio:'Relatório','loja-chamados':'Chamados de Loja'}[tab]||tab;
   closeSidebar();
   if(tab==='lojas') renderLojas();
   if(tab==='loja-chamados'){ renderLojaChamadosKPIs(); renderLojaChamados(); populateFlLoja(); }
@@ -738,7 +738,7 @@ function renderKPIs(){
   const res=allChamados.filter(c=>c.status==='Resolvido').length;
   const cob=allChamados.reduce((a,c)=>a+c.cobr_count,0);
   const taxa=t?Math.round(res/t*100):0;
-  $('badge-open').textContent=ab;
+  $('badge-ti').textContent=ab;
 
   if(t===0){
     $('kpi-grid').innerHTML=`<div style="grid-column:span 5;background:#fff;border-radius:12px;padding:48px 32px;text-align:center;box-shadow:var(--shadow);">
