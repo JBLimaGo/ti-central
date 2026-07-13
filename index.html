@@ -669,6 +669,15 @@ let allLojaChamados=[], currentLojaChamadoId=null;
 
 // ══ UTILS ══
 const $ = id => document.getElementById(id);
+
+// Formata qualquer data para DD/MM/AAAA
+function fmtData(val){
+  if(!val || val==='—') return '—';
+  // suporte a "2026-06-27" e "2026-06-27T..." (ISO)
+  var d = new Date(val.includes('T') ? val : val+'T12:00:00');
+  if(isNaN(d)) return val;
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
 const short = l => l.replace('CD (Centro de Distribuição)','CD');
 const today = () => new Date().toISOString().slice(0,10);
 const chip = t => `<span class="chip ${TIPO_CHIP[t]||'c-infra'}">${t}</span>`;
@@ -829,7 +838,7 @@ function tblHTML(rows){
     <td><span style="font-size:11px;font-weight:600;color:${PRIO_COR[c.prioridade]||'#ccc'}">${c.prioridade}</span></td>
     <td>${pBadge(c.status)}</td>
     <td style="text-align:center;">${c.cobr_count?`<span style="background:var(--rose-lt);color:var(--rose-dk);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">💬 ${c.cobr_count}</span>`:'<span style="color:var(--ink-20);font-size:13px;">—</span>'}</td>
-    <td style="font-size:12px;color:var(--ink-60)">${c.data}</td>
+    <td style="font-size:12px;color:var(--ink-60)">${fmtData(c.data)}</td>
   </tr>`).join('')}</tbody>`;
 }
 
@@ -881,12 +890,12 @@ async function openDetail(id){
   const c=allChamados.find(x=>x.id===id);
   if(!c)return;
   $('det-ttl').textContent=(c.titulo||c.id)+' — '+short(c.loja);
-  $('det-sub').textContent=c.tipo+' · '+c.sistema+' · '+c.data;
+  $('det-sub').textContent=c.tipo+' · '+c.sistema+' · '+fmtData(c.data);
   $('det-titulo').textContent=c.titulo||'—';
   $('det-id').textContent=c.id;
-  $('det-data').textContent=c.data;
-  $('det-data-abertura').textContent=c.data_abertura||'—';
-  $('det-data-chamado').textContent=c.data_chamado||'—';
+  $('det-data').textContent=fmtData(c.data);
+  $('det-data-abertura').textContent=fmtData(c.data_abertura);
+  $('det-data-chamado').textContent=fmtData(c.data_chamado);
   $('det-loja').textContent=c.loja;
   $('det-user').textContent=c.usuario;
   $('det-depto').textContent=c.departamento||'—';
@@ -930,7 +939,7 @@ function renderConvList(rows){
       <div class="conv-hdr" onclick="toggleConv('cb${i}')">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span class="conv-seq">Cobrança #${cv.seq}</span>
-          <span style="font-size:13px;font-weight:500;">📅 ${cv.data}</span>
+          <span style="font-size:13px;font-weight:500;">📅 ${fmtData(cv.data)}</span>
           ${pBadge(cv.resposta==='Resolvido pelo suporte'?'Resolvido':cv.resposta==='Escalado para dev'?'Em andamento':'Aberto').replace(cv.resposta==='Resolvido pelo suporte'?'Resolvido':cv.resposta==='Escalado para dev'?'Em andamento':'Aberto',cv.resposta)}
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -943,7 +952,7 @@ function renderConvList(rows){
         ${cv.observacao?`<div style="background:var(--amber-lt);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:13px;border-left:3px solid var(--amber);"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b87a00;display:block;margin-bottom:3px;">Observação</span>${cv.observacao}</div>`:''}
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
           ${cv.responsavel?`<div style="font-size:12px;"><span style="color:var(--ink-60);">👤 Responsável: </span><strong>${cv.responsavel}</strong></div>`:''}
-          ${cv.data_entrega?`<div style="font-size:12px;"><span style="color:var(--ink-60);">📆 Entrega: </span><strong>${cv.data_entrega}</strong></div>`:''}
+          ${cv.data_entrega?`<div style="font-size:12px;"><span style="color:var(--ink-60);">📆 Entrega: </span><strong>${fmtData(cv.data_entrega)}</strong></div>`:''}
         </div>
         <div class="imgs-grid">
           ${(cv.cobranca_imagens||[]).map(img=>`<div class="img-thumb" onclick="openLbox('${img.data_url}')"><img src="${img.data_url}" alt="${img.nome}"></div>`).join('')}
@@ -1127,7 +1136,7 @@ function renderLojaChamados(){
       +'<td style="font-weight:500;">'+c.colaboradora+'</td>'
       +'<td style="font-size:12px;color:var(--ink-60);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.descricao||'—')+'</td>'
       +'<td><span class="badge '+(SCOR[c.status]||'b-aberto')+'">'+c.status+'</span></td>'
-      +'<td style="font-size:12px;color:var(--ink-60);">'+(c.data_abertura||c.data||'—')+'</td>'
+      +'<td style="font-size:12px;color:var(--ink-60);">'+fmtData(c.data_abertura||c.data)+'</td>'
       +'<td><button class="btn btn-ghost btn-sm" onclick="abrirDetalheLoja('+c.id+')">✏️ Editar</button></td>'
       +'</tr>';
   });
@@ -1165,7 +1174,7 @@ function abrirDetalheLoja(id){
   var c=allLojaChamados.find(function(x){return x.id===id;});
   if(!c)return;
   $('ldet-ttl').textContent='Editar — Ticket #'+(c.ticket||'—');
-  $('ldet-sub').textContent=c.loja+' · '+c.colaboradora;
+  $('ldet-sub').textContent=c.loja+' · '+c.colaboradora+' · '+fmtData(c.data_abertura);
   $('ldet-loja').value=c.loja;
   $('ldet-colab').value=c.colaboradora||'';
   $('ldet-ticket').value=c.ticket||'';
@@ -1453,7 +1462,7 @@ function renderRelatorio(){
         +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;">'+chip(c.tipo)+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;"><span style="font-size:11px;font-weight:700;color:'+(PCOR[c.prioridade]||'#ccc')+'">'+c.prioridade+'</span></td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;text-align:center;">'+(c.cobr_count?'<span style="font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:#E8436A;">💬 '+c.cobr_count+'</span>':'—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-size:11px;color:#7A6A74;">'+(c.data_abertura||c.data||'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-size:11px;color:#7A6A74;">'+fmtData(c.data_abertura||c.data)+'</td>'
         +'</tr>';
     });
     tblHTML2+='</tbody></table></div>';
@@ -1489,7 +1498,7 @@ function renderRelatorio(){
         +'<div style="width:7px;height:7px;border-radius:50%;background:'+(SCOR[c.status]||'#ccc')+';margin-top:4px;flex-shrink:0;"></div>'
         +'<div style="flex:1;min-width:0;">'
           +'<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.titulo||c.id)+'</div>'
-          +'<div style="font-size:11px;color:#7A6A74;">'+short(c.loja)+' · '+c.data+'</div>'
+          +'<div style="font-size:11px;color:#7A6A74;">'+short(c.loja)+' · '+fmtData(c.data)+'</div>'
         +'</div>'
         +'<span style="font-family:DM Mono,monospace;font-size:11px;color:#E8436A;font-weight:700;flex-shrink:0;">💬 '+c.cobr_count+'x</span>'
         +'</div>';
