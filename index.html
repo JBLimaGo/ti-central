@@ -849,13 +849,20 @@ function renderRecent(){
 }
 
 // ══ TABELA ══
+function lojaCell(loja){
+  var ls=(loja||'—').split(', ').filter(function(x){return x.trim();});
+  if(!ls.length||ls[0]==='—') return '<span style="color:var(--ink-60)">—</span>';
+  var html=ls.slice(0,2).map(function(l){return '<span class="loja-pill">'+short(l.trim())+'</span>';}).join(' ');
+  if(ls.length>2) html+=' <span style="font-size:10px;background:var(--ink-20);color:var(--ink-60);padding:2px 7px;border-radius:20px;font-weight:600;">+' +(ls.length-2)+'</span>';
+  return html;
+}
 function tblHTML(rows){
   if(!rows.length) return '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink-60)">Nenhum chamado encontrado</td></tr>';
   return `<thead><tr><th>ID</th><th>Título</th><th>Loja</th><th>Depto</th><th>Usuário</th><th>Tipo</th><th>Sistema</th><th>Prioridade</th><th>Status</th><th>Cobranças</th><th>Data</th></tr></thead>
   <tbody>${rows.map(c=>`<tr onclick="openDetail('${c.id}')">
     <td class="id-code">${c.id}</td>
     <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||'—'}</td>
-    <td>${(c.loja||'—').split(', ').map(function(l){return '<span class="loja-pill">'+short(l.trim())+'</span>';}).join(' ')}</td>
+    <td>${lojaCell(c.loja)}</td>
     <td><span style="font-size:11px;background:var(--purple-lt);color:var(--purple);padding:2px 7px;border-radius:6px;font-weight:500;">${c.departamento||'—'}</span></td>
     <td>${c.usuario}</td>
     <td>${chip(c.tipo)}</td>
