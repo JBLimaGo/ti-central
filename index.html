@@ -1079,9 +1079,7 @@ async function updateStatus(){
 function openEdit(){
   const ch = allChamados.find(x=>x.id===currentId);
   if(!ch) return;
-  // preencher select de lojas se vazio
-  const el=$('e-loja');
-  if(el.options.length===0) LOJAS.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=short(l);el.appendChild(o);});
+  // inicializar multi-loja de edição
   $('edit-sub').textContent = ch.id + ' — ' + short(ch.loja);
   $('e-titulo').value = ch.titulo||'';
   mlojaSet('e-loja', ch.loja);
