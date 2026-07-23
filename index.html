@@ -271,6 +271,31 @@ tbody tr:hover{background:var(--cream);}
   .rpt-kpi-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   svg { overflow: visible; }
 }
+
+/* ── MULTI-LOJA SELECT ── */
+.mloja-wrap{position:relative;}
+.mloja-trigger{width:100%;padding:9px 12px;border:1.5px solid var(--ink-20);border-radius:8px;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--white);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;transition:border-color .15s;}
+.mloja-trigger:focus,.mloja-trigger.open{border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,67,106,.1);}
+.mloja-trigger-txt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+.mloja-trigger-txt.placeholder{color:var(--ink-60);}
+.mloja-arrow{font-size:10px;color:var(--ink-60);flex-shrink:0;margin-left:6px;}
+.mloja-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:1.5px solid var(--rose);border-radius:10px;box-shadow:var(--shadow-md);z-index:200;overflow:hidden;}
+.mloja-dropdown.open{display:block;}
+.mloja-search{padding:8px 10px;border-bottom:1px solid var(--ink-20);}
+.mloja-search input{width:100%;padding:6px 10px;border:1.5px solid var(--ink-20);border-radius:7px;font-family:inherit;font-size:13px;outline:none;}
+.mloja-search input:focus{border-color:var(--rose);}
+.mloja-list{max-height:220px;overflow-y:auto;}
+.mloja-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .1s;}
+.mloja-item:hover{background:var(--cream);}
+.mloja-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--rose);cursor:pointer;flex-shrink:0;}
+.mloja-item label{font-size:13px;cursor:pointer;flex:1;}
+.mloja-actions{display:flex;gap:8px;padding:8px 10px;border-top:1px solid var(--ink-20);}
+.mloja-actions button{flex:1;padding:6px;border:1.5px solid var(--ink-20);border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer;background:transparent;color:var(--ink-60);transition:all .15s;}
+.mloja-actions button:hover{background:var(--rose);color:#fff;border-color:var(--rose);}
+/* Pills de loja selecionada */
+.loja-pills-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.loja-pill-sel{display:inline-flex;align-items:center;gap:4px;background:var(--rose-lt);color:var(--rose-dk);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;}
+.loja-pill-sel button{background:none;border:none;cursor:pointer;color:var(--rose-dk);font-size:13px;line-height:1;padding:0;display:flex;align-items:center;}
 </style>
 </head>
 <body>
@@ -402,7 +427,25 @@ tbody tr:hover{background:var(--cream);}
   <div class="modal-bdy">
     <div class="fg"><label>Título do Chamado</label><input id="n-titulo" type="text" placeholder="Ex: PDV travando ao finalizar venda com cartão…"></div>
     <div class="fr">
-      <div class="fg"><label>Loja / Unidade</label><select id="n-loja"></select></div>
+      <div class="fg">
+      <label>Loja / Unidade</label>
+      <div class="mloja-wrap" id="n-loja-wrap">
+        <button type="button" class="mloja-trigger" id="n-loja-trigger" onclick="toggleMloja('n-loja')">
+          <span class="mloja-trigger-txt placeholder" id="n-loja-txt">Selecione a(s) loja(s)…</span>
+          <span class="mloja-arrow">▾</span>
+        </button>
+        <div class="mloja-dropdown" id="n-loja-dd">
+          <div class="mloja-search"><input type="text" placeholder="🔍 Filtrar lojas…" oninput="filterMlojaList('n-loja',this.value)"></div>
+          <div class="mloja-list" id="n-loja-list"><div class="mloja-item"><input type="checkbox" id="n-loja-cb-0" value="CD (Centro de Distribuição)"><label for="n-loja-cb-0">CD (Centro de Distribuição)</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-1" value="Shopping Cidade"><label for="n-loja-cb-1">Shopping Cidade</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-2" value="Via Shopping"><label for="n-loja-cb-2">Via Shopping</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-3" value="BIG"><label for="n-loja-cb-3">BIG</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-4" value="Estação BH"><label for="n-loja-cb-4">Estação BH</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-5" value="Shopping Del Rey"><label for="n-loja-cb-5">Shopping Del Rey</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-6" value="Shopping Contagem"><label for="n-loja-cb-6">Shopping Contagem</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-7" value="Itaú"><label for="n-loja-cb-7">Itaú</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-8" value="Minas Shopping"><label for="n-loja-cb-8">Minas Shopping</label></div><div class="mloja-item"><input type="checkbox" id="n-loja-cb-9" value="Partage"><label for="n-loja-cb-9">Partage</label></div></div>
+          <div class="mloja-actions">
+            <button onclick="selectAllMloja('n-loja')">Todas</button>
+            <button onclick="clearMloja('n-loja')">Limpar</button>
+            <button onclick="confirmMloja('n-loja')" style="background:var(--rose);color:#fff;border-color:var(--rose);">OK</button>
+          </div>
+        </div>
+        <div class="loja-pills-wrap" id="n-loja-pills"></div>
+      </div>
+    </div>
       <div class="fg"><label>Solicitante</label><input id="n-user" type="text" placeholder="Nome do usuário"></div>
     </div>
     <div class="fr">
@@ -530,7 +573,25 @@ tbody tr:hover{background:var(--cream);}
   <div class="modal-bdy">
     <div class="fg"><label>Título do Chamado</label><input id="e-titulo" type="text"></div>
     <div class="fr">
-      <div class="fg"><label>Loja / Unidade</label><select id="e-loja"></select></div>
+      <div class="fg">
+      <label>Loja / Unidade</label>
+      <div class="mloja-wrap" id="e-loja-wrap">
+        <button type="button" class="mloja-trigger" id="e-loja-trigger" onclick="toggleMloja('e-loja')">
+          <span class="mloja-trigger-txt placeholder" id="e-loja-txt">Selecione a(s) loja(s)…</span>
+          <span class="mloja-arrow">▾</span>
+        </button>
+        <div class="mloja-dropdown" id="e-loja-dd">
+          <div class="mloja-search"><input type="text" placeholder="🔍 Filtrar lojas…" oninput="filterMlojaList('e-loja',this.value)"></div>
+          <div class="mloja-list" id="e-loja-list"><div class="mloja-item"><input type="checkbox" id="e-loja-cb-0" value="CD (Centro de Distribuição)"><label for="e-loja-cb-0">CD (Centro de Distribuição)</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-1" value="Shopping Cidade"><label for="e-loja-cb-1">Shopping Cidade</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-2" value="Via Shopping"><label for="e-loja-cb-2">Via Shopping</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-3" value="BIG"><label for="e-loja-cb-3">BIG</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-4" value="Estação BH"><label for="e-loja-cb-4">Estação BH</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-5" value="Shopping Del Rey"><label for="e-loja-cb-5">Shopping Del Rey</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-6" value="Shopping Contagem"><label for="e-loja-cb-6">Shopping Contagem</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-7" value="Itaú"><label for="e-loja-cb-7">Itaú</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-8" value="Minas Shopping"><label for="e-loja-cb-8">Minas Shopping</label></div><div class="mloja-item"><input type="checkbox" id="e-loja-cb-9" value="Partage"><label for="e-loja-cb-9">Partage</label></div></div>
+          <div class="mloja-actions">
+            <button onclick="selectAllMloja('e-loja')">Todas</button>
+            <button onclick="clearMloja('e-loja')">Limpar</button>
+            <button onclick="confirmMloja('e-loja')" style="background:var(--rose);color:#fff;border-color:var(--rose);">OK</button>
+          </div>
+        </div>
+        <div class="loja-pills-wrap" id="e-loja-pills"></div>
+      </div>
+    </div>
       <div class="fg"><label>Solicitante</label><input id="e-user" type="text"></div>
     </div>
     <div class="fr">
@@ -830,7 +891,7 @@ function tblHTML(rows){
   <tbody>${rows.map(c=>`<tr onclick="openDetail('${c.id}')">
     <td class="id-code">${c.id}</td>
     <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||'—'}</td>
-    <td><span class="loja-pill">${short(c.loja)}</span></td>
+    <td>${(c.loja||"—").split(", ").map(l=>'<span class="loja-pill">'+short(l)+'</span>').join(" ")}</td>
     <td><span style="font-size:11px;background:var(--purple-lt);color:var(--purple);padding:2px 7px;border-radius:6px;font-weight:500;">${c.departamento||'—'}</span></td>
     <td>${c.usuario}</td>
     <td>${chip(c.tipo)}</td>
@@ -863,18 +924,20 @@ function populateSelects(){
 // ══ NOVO CHAMADO ══
 function openNew(){
   populateSelects();
+  clearMloja('n-loja');
   $('n-data-abertura').value=today();
   $('n-data-chamado').value=today();
   $('ov-novo').classList.add('open');
 }
 async function saveChamado(){
   const titulo=$('n-titulo').value.trim(), user=$('n-user').value.trim(), desc=$('n-desc').value.trim();
-  if(!titulo){toast('⚠ Preencha o título do chamado.');return;} if(!user||!desc){toast('⚠ Preencha solicitante e descrição.');return;}
+  if(!titulo){toast('⚠ Preencha o título do chamado.');return;}
+  if(!getMlojaValue('n-loja')){toast('⚠ Selecione ao menos uma loja.');return;} if(!user||!desc){toast('⚠ Preencha solicitante e descrição.');return;}
   const btn=document.querySelector('#ov-novo .btn-primary');
   btn.textContent='Salvando…';btn.disabled=true;
   try{
     setSyncing(true);
-    const c={id:genId(),titulo,loja:$('n-loja').value,usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today(),data_abertura:$('n-data-abertura').value||null,data_chamado:$('n-data-chamado').value||null,departamento:$('n-depto').value};
+    const c={id:genId(),titulo,loja:getMlojaValue('n-loja')||'—',usuario:user,tipo:$('n-tipo').value,prioridade:$('n-prio').value,sistema:$('n-sist').value,descricao:desc,status:$('n-stat').value,data:today(),data_abertura:$('n-data-abertura').value||null,data_chamado:$('n-data-chamado').value||null,departamento:$('n-depto').value};
     await sbPost('chamados',c);
     closeOv('ov-novo');
     $('n-titulo').value='';$('n-user').value='';$('n-desc').value='';
@@ -896,7 +959,7 @@ async function openDetail(id){
   $('det-data').textContent=fmtData(c.data);
   $('det-data-abertura').textContent=fmtData(c.data_abertura);
   $('det-data-chamado').textContent=fmtData(c.data_chamado);
-  $('det-loja').textContent=c.loja;
+  $('det-loja').innerHTML=(c.loja||'—').split(', ').map(function(l){return '<span class="loja-pill" style="margin-right:4px;">'+l+'</span>';}).join('');
   $('det-user').textContent=c.usuario;
   $('det-depto').textContent=c.departamento||'—';
   $('det-tipo').innerHTML=chip(c.tipo);
@@ -987,7 +1050,7 @@ function openEdit(){
   if(el.options.length===0) LOJAS.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=short(l);el.appendChild(o);});
   $('edit-sub').textContent = ch.id + ' — ' + short(ch.loja);
   $('e-titulo').value = ch.titulo||'';
-  $('e-loja').value  = ch.loja;
+  setMlojaValue('e-loja', ch.loja);
   $('e-user').value  = ch.usuario;
   $('e-tipo').value  = ch.tipo;
   $('e-prio').value  = ch.prioridade;
@@ -1006,7 +1069,7 @@ async function saveEdit(){
   const btn=$('btn-save-edit'); btn.textContent='Salvando…'; btn.disabled=true;
   try{
     setSyncing(true);
-    const upd={titulo,loja:$('e-loja').value,usuario:user,tipo:$('e-tipo').value,prioridade:$('e-prio').value,sistema:$('e-sist').value,descricao:desc,status:$('e-stat').value,data_abertura:$('e-data-abertura').value||null,data_chamado:$('e-data-chamado').value||null,departamento:$('e-depto').value};
+    const upd={titulo,loja:getMlojaValue('e-loja')||ch.loja,usuario:user,tipo:$('e-tipo').value,prioridade:$('e-prio').value,sistema:$('e-sist').value,descricao:desc,status:$('e-stat').value,data_abertura:$('e-data-abertura').value||null,data_chamado:$('e-data-chamado').value||null,departamento:$('e-depto').value};
     await sbPatch('chamados','id=eq.'+currentId, upd);
     closeOv('ov-edit');
     await loadAll();
@@ -1065,6 +1128,102 @@ async function saveCobranca(){
   }catch(e){toast('⚠ Erro ao salvar: '+e.message);}finally{btn.textContent='💾 Salvar Cobrança';btn.disabled=false;setSyncing(false);}
 }
 
+
+
+// ══ MULTI-LOJA ══
+const MLOJA_MAP = {}; // prefix → [lojas selecionadas]
+
+function toggleMloja(prefix){
+  const dd = $(prefix+'-dd');
+  const tr = $(prefix+'-trigger');
+  const isOpen = dd.classList.contains('open');
+  // fechar todos primeiro
+  document.querySelectorAll('.mloja-dropdown.open').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('.mloja-trigger.open').forEach(el=>el.classList.remove('open'));
+  if(!isOpen){ dd.classList.add('open'); tr.classList.add('open'); }
+}
+
+// Fechar ao clicar fora
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.mloja-wrap')){
+    document.querySelectorAll('.mloja-dropdown.open').forEach(el=>el.classList.remove('open'));
+    document.querySelectorAll('.mloja-trigger.open').forEach(el=>el.classList.remove('open'));
+  }
+});
+
+function filterMlojaList(prefix, q){
+  const items = document.querySelectorAll('#'+prefix+'-list .mloja-item');
+  const ql = q.toLowerCase();
+  items.forEach(function(item){
+    item.style.display = item.querySelector('label').textContent.toLowerCase().includes(ql) ? '' : 'none';
+  });
+}
+
+function selectAllMloja(prefix){
+  document.querySelectorAll('#'+prefix+'-list input[type=checkbox]').forEach(function(cb){ cb.checked=true; });
+}
+
+function clearMloja(prefix){
+  document.querySelectorAll('#'+prefix+'-list input[type=checkbox]').forEach(function(cb){ cb.checked=false; });
+  MLOJA_MAP[prefix] = [];
+  updateMlojaUI(prefix);
+}
+
+function confirmMloja(prefix){
+  const selected = [];
+  document.querySelectorAll('#'+prefix+'-list input[type=checkbox]:checked').forEach(function(cb){ selected.push(cb.value); });
+  MLOJA_MAP[prefix] = selected;
+  updateMlojaUI(prefix);
+  // fechar dropdown
+  $(prefix+'-dd').classList.remove('open');
+  $(prefix+'-trigger').classList.remove('open');
+}
+
+function updateMlojaUI(prefix){
+  const selected = MLOJA_MAP[prefix] || [];
+  const txt = $(prefix+'-txt');
+  const pills = $(prefix+'-pills');
+  if(!selected.length){
+    txt.textContent = 'Selecione a(s) loja(s)…';
+    txt.className = 'mloja-trigger-txt placeholder';
+    if(pills) pills.innerHTML = '';
+    return;
+  }
+  txt.textContent = selected.length === 1 ? selected[0] : selected.length+' lojas selecionadas';
+  txt.className = 'mloja-trigger-txt';
+  if(pills){
+    pills.innerHTML = selected.map(function(l){
+      return '<span class="loja-pill-sel">'+l+'<button onclick="removeMlojaItem(\''+prefix+'\',\''+l+'\')">×</button></span>';
+    }).join('');
+  }
+}
+
+function removeMlojaItem(prefix, loja){
+  MLOJA_MAP[prefix] = (MLOJA_MAP[prefix]||[]).filter(function(l){return l!==loja;});
+  // desmarcar checkbox
+  document.querySelectorAll('#'+prefix+'-list input[type=checkbox]').forEach(function(cb){
+    if(cb.value===loja) cb.checked=false;
+  });
+  updateMlojaUI(prefix);
+}
+
+function getMlojaValue(prefix){
+  return (MLOJA_MAP[prefix]||[]).join(', ');
+}
+
+function setMlojaValue(prefix, val){
+  const lojas = val ? val.split(', ').map(function(s){return s.trim();}) : [];
+  MLOJA_MAP[prefix] = lojas;
+  // marcar checkboxes
+  document.querySelectorAll('#'+prefix+'-list input[type=checkbox]').forEach(function(cb){
+    cb.checked = lojas.includes(cb.value);
+  });
+  updateMlojaUI(prefix);
+}
+
+function initMloja(prefix){
+  MLOJA_MAP[prefix] = [];
+}
 
 // ══ CHAMADOS DE LOJA ══
 function populateFlLoja(){
@@ -1263,7 +1422,9 @@ function renderRelatorio(){
   const topTipo=tiEntries[0]||['—',0];
 
   const loCnt={};
-  allChamados.forEach(function(c){loCnt[c.loja]=(loCnt[c.loja]||0)+1;});
+  allChamados.forEach(function(c){
+    (c.loja||'').split(', ').forEach(function(l){var lt=l.trim();if(lt)loCnt[lt]=(loCnt[lt]||0)+1;});
+  });
   const loSorted=Object.entries(loCnt).sort(function(a,b){return b[1]-a[1];});
   const topLoja=loSorted[0]||['—',0];
   const botLoja=loSorted[loSorted.length-1]||['—',0];
@@ -1541,7 +1702,32 @@ function renderRelatorio(){
       +'.rpt-hero{-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
       +'.rpt-kpi-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;break-inside:avoid;}'
     +'}'
-    +'</style>';
+    +'
+/* ── MULTI-LOJA SELECT ── */
+.mloja-wrap{position:relative;}
+.mloja-trigger{width:100%;padding:9px 12px;border:1.5px solid var(--ink-20);border-radius:8px;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--white);cursor:pointer;text-align:left;display:flex;align-items:center;justify-content:space-between;transition:border-color .15s;}
+.mloja-trigger:focus,.mloja-trigger.open{border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,67,106,.1);}
+.mloja-trigger-txt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+.mloja-trigger-txt.placeholder{color:var(--ink-60);}
+.mloja-arrow{font-size:10px;color:var(--ink-60);flex-shrink:0;margin-left:6px;}
+.mloja-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--white);border:1.5px solid var(--rose);border-radius:10px;box-shadow:var(--shadow-md);z-index:200;overflow:hidden;}
+.mloja-dropdown.open{display:block;}
+.mloja-search{padding:8px 10px;border-bottom:1px solid var(--ink-20);}
+.mloja-search input{width:100%;padding:6px 10px;border:1.5px solid var(--ink-20);border-radius:7px;font-family:inherit;font-size:13px;outline:none;}
+.mloja-search input:focus{border-color:var(--rose);}
+.mloja-list{max-height:220px;overflow-y:auto;}
+.mloja-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;transition:background .1s;}
+.mloja-item:hover{background:var(--cream);}
+.mloja-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--rose);cursor:pointer;flex-shrink:0;}
+.mloja-item label{font-size:13px;cursor:pointer;flex:1;}
+.mloja-actions{display:flex;gap:8px;padding:8px 10px;border-top:1px solid var(--ink-20);}
+.mloja-actions button{flex:1;padding:6px;border:1.5px solid var(--ink-20);border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer;background:transparent;color:var(--ink-60);transition:all .15s;}
+.mloja-actions button:hover{background:var(--rose);color:#fff;border-color:var(--rose);}
+/* Pills de loja selecionada */
+.loja-pills-wrap{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+.loja-pill-sel{display:inline-flex;align-items:center;gap:4px;background:var(--rose-lt);color:var(--rose-dk);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;}
+.loja-pill-sel button{background:none;border:none;cursor:pointer;color:var(--rose-dk);font-size:13px;line-height:1;padding:0;display:flex;align-items:center;}
+</style>';
 
   // HERO
   html+='<div class="rpt-hero">'
