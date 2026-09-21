@@ -1406,7 +1406,7 @@ function handleFiles(e){
 function renderNcPreviews(){
   $('nc-imgs-wrap').innerHTML=ncImgs.map((img,i)=>`
     <div class="img-thumb" onclick="openLbox('${img.dataUrl}')">
-      <img src="${img.dataUrl}" alt="${img.name}">
+      <img src="${img.dataUrl}" alt="${esc(img.name)}">
       <button class="img-del" onclick="event.stopPropagation();removeImg(${i})">✕</button>
     </div>`).join('')+
     (ncImgs.length<10?`<div class="img-add" onclick="document.getElementById('nc-file').click()"><span class="img-add-ico">＋</span><span>Imagem</span></div>`:'');
@@ -1844,9 +1844,9 @@ function renderRelatorio(){
       +'</tr></thead><tbody>';
     abertos.forEach(function(c){
       tblHTML2+='<tr>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-family:DM Mono,monospace;font-size:11px;color:#7A6A74;">'+c.id+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-weight:500;max-width:180px;">'+(c.titulo||'—')+'</td>'
-        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-size:12px;">'+short(c.loja)+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-family:DM Mono,monospace;font-size:11px;color:#7A6A74;">'+esc(c.id)+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-weight:500;max-width:180px;">'+esc(c.titulo||'—')+'</td>'
+        +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;font-size:12px;">'+esc(short(c.loja))+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;">'+chip(c.tipo)+'</td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;"><span style="font-size:11px;font-weight:700;color:'+(PCOR[c.prioridade]||'#ccc')+'">'+c.prioridade+'</span></td>'
         +'<td style="padding:8px 10px;border-bottom:1px solid #EDE8EC;text-align:center;">'+(c.cobr_count?'<span style="font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:#E8436A;">💬 '+c.cobr_count+'</span>':'—')+'</td>'
@@ -1885,8 +1885,8 @@ function renderRelatorio(){
       histHTML+='<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #EDE8EC;align-items:flex-start;">'
         +'<div style="width:7px;height:7px;border-radius:50%;background:'+(SCOR[c.status]||'#ccc')+';margin-top:4px;flex-shrink:0;"></div>'
         +'<div style="flex:1;min-width:0;">'
-          +'<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.titulo||c.id)+'</div>'
-          +'<div style="font-size:11px;color:#7A6A74;">'+short(c.loja)+' · '+fmtData(c.data)+'</div>'
+          +'<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.titulo||c.id)+'</div>'
+          +'<div style="font-size:11px;color:#7A6A74;">'+esc(short(c.loja))+' · '+fmtData(c.data)+'</div>'
         +'</div>'
         +'<span style="font-family:DM Mono,monospace;font-size:11px;color:#E8436A;font-weight:700;flex-shrink:0;">💬 '+c.cobr_count+'x</span>'
         +'</div>';
