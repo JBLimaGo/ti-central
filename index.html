@@ -814,7 +814,7 @@ tbody tr:hover{background:var(--cream);}
 <script>
 // ══ CONFIG SUPABASE ══
 const SB_URL = 'https://vmxpxopyhotybhnppmdl.supabase.co';
-const READONLY_EMAIL = 'suportemaisqmake@gmail.com';
+const READONLY_EMAILS = []; // e-mails somente-leitura (vazio = todos podem editar)
 let IS_READONLY = false;
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZteHB4b3B5aG90eWJobnBwbWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNzQ1MjcsImV4cCI6MjA5MjY1MDUyN30.8n_IEIFZUC53IfFOLoueg3buHGNFGrWYHftFv5-Hogg';
 
@@ -2078,7 +2078,7 @@ async function doLogin(){
 }
 
 function showApp(email){
-  IS_READONLY = (email||'').toLowerCase().trim() === READONLY_EMAIL;
+  IS_READONLY = READONLY_EMAILS.includes((email||'').toLowerCase().trim());
   $('login-screen').classList.remove('active');
   $('main-app').style.display='flex';
   var badge = IS_READONLY ? ' 👁 Visualização' : '';
