@@ -848,6 +848,7 @@ let allLojaChamados=[], currentLojaChamadoId=null;
 
 // ══ UTILS ══
 const $ = id => document.getElementById(id);
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
 // Formata qualquer data para DD/MM/AAAA
 function fmtData(val){
@@ -1017,7 +1018,7 @@ function entregaCell(dataEntrega){
 function lojaCell(loja){
   var ls=(loja||'—').split(', ').filter(function(x){return x.trim();});
   if(!ls.length||ls[0]==='—') return '<span style="color:var(--ink-60)">—</span>';
-  var html=ls.slice(0,2).map(function(l){return '<span class="loja-pill">'+short(l.trim())+'</span>';}).join(' ');
+  var html=ls.slice(0,2).map(function(l){return '<span class="loja-pill">'+esc(short(l.trim()))+'</span>';}).join(' ');
   if(ls.length>2) html+=' <span style="font-size:10px;background:var(--ink-20);color:var(--ink-60);padding:2px 7px;border-radius:20px;font-weight:600;">+' +(ls.length-2)+'</span>';
   return html;
 }
@@ -1025,13 +1026,13 @@ function tblHTML(rows){
   if(!rows.length) return '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--ink-60)">Nenhum chamado encontrado</td></tr>';
   return `<thead><tr><th>ID</th><th>Título</th><th>Loja</th><th>Depto</th><th>Usuário</th><th>Tipo</th><th>Sistema</th><th>Prioridade</th><th>Status</th><th>Cobranças</th><th>Entrega</th><th>Data</th></tr></thead>
   <tbody>${rows.map(c=>`<tr onclick="openDetail('${c.id}')">
-    <td class="id-code">${c.id}</td>
-    <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.titulo||'—'}</td>
+    <td class="id-code">${esc(c.id)}</td>
+    <td style="font-weight:500;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.titulo)||'—'}</td>
     <td>${lojaCell(c.loja)}</td>
-    <td><span style="font-size:11px;background:var(--purple-lt);color:var(--purple);padding:2px 7px;border-radius:6px;font-weight:500;">${c.departamento||'—'}</span></td>
-    <td>${c.usuario}</td>
+    <td><span style="font-size:11px;background:var(--purple-lt);color:var(--purple);padding:2px 7px;border-radius:6px;font-weight:500;">${esc(c.departamento)||'—'}</span></td>
+    <td>${esc(c.usuario)}</td>
     <td>${chip(c.tipo)}</td>
-    <td style="font-size:12px;color:var(--ink-60)">${c.sistema}</td>
+    <td style="font-size:12px;color:var(--ink-60)">${esc(c.sistema)}</td>
     <td><span style="font-size:11px;font-weight:600;color:${PRIO_COR[c.prioridade]||'#ccc'}">${c.prioridade}</span></td>
     <td>${pBadge(c.status)}</td>
     <td style="text-align:center;">${c.cobr_count?`<span style="background:var(--rose-lt);color:var(--rose-dk);font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">💬 ${c.cobr_count}</span>`:'<span style="color:var(--ink-20);font-size:13px;">—</span>'}</td>
@@ -1270,7 +1271,7 @@ async function openDetail(id){
     _deEl.textContent=fmtData(c.data_entrega);
     _deEl.style.color=_deM?'#B52E50':'#2860C8';
   } else { _deEl.textContent='—'; _deEl.style.color='var(--ink-60)'; }
-  $('det-loja').innerHTML=(c.loja||'—').split(', ').map(function(l){return '<span class="loja-pill" style="margin-right:3px;">'+l.trim()+'</span>';}).join('');
+  $('det-loja').innerHTML=(c.loja||'—').split(', ').map(function(l){return '<span class="loja-pill" style="margin-right:3px;">'+esc(l.trim())+'</span>';}).join('');
   $('det-user').textContent=c.usuario;
   $('det-depto').textContent=c.departamento||'—';
   $('det-tipo').innerHTML=chip(c.tipo);
@@ -1322,14 +1323,14 @@ function renderConvList(rows){
         </div>
       </div>
       <div class="conv-bdy" id="cb${i}">
-        <div class="conv-nota">${cv.nota}</div>
-        ${cv.observacao?`<div style="background:var(--amber-lt);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:13px;border-left:3px solid var(--amber);"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b87a00;display:block;margin-bottom:3px;">Observação</span>${cv.observacao}</div>`:''}
+        <div class="conv-nota">${esc(cv.nota)}</div>
+        ${cv.observacao?`<div style="background:var(--amber-lt);border-radius:7px;padding:9px 12px;margin-bottom:10px;font-size:13px;border-left:3px solid var(--amber);"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#b87a00;display:block;margin-bottom:3px;">Observação</span>${esc(cv.observacao)}</div>`:''}
         <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
-          ${cv.responsavel?`<div style="font-size:12px;"><span style="color:var(--ink-60);">👤 Responsável: </span><strong>${cv.responsavel}</strong></div>`:''}
+          ${cv.responsavel?`<div style="font-size:12px;"><span style="color:var(--ink-60);">👤 Responsável: </span><strong>${esc(cv.responsavel)}</strong></div>`:''}
   
         </div>
         <div class="imgs-grid">
-          ${(cv.cobranca_imagens||[]).map(img=>`<div class="img-thumb" onclick="openLbox('${img.data_url}')"><img src="${img.data_url}" alt="${img.nome}"></div>`).join('')}
+          ${(cv.cobranca_imagens||[]).map(img=>`<div class="img-thumb" onclick="openLbox('${img.data_url}')"><img src="${img.data_url}" alt="${esc(img.nome)}"></div>`).join('')}
           ${!(cv.cobranca_imagens?.length)?'<div style="font-size:12px;color:var(--ink-60)">Sem imagens nesta cobrança</div>':''}
         </div>
       </div>
@@ -1507,10 +1508,10 @@ function renderLojaChamados(){
     +'</tr></thead><tbody>';
   f.forEach(function(c){
     html+='<tr>'
-      +'<td><span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;background:var(--blue-lt);color:var(--blue);padding:2px 9px;border-radius:6px;">#'+(c.ticket||'—')+'</span></td>'
-      +'<td><span class="loja-pill">'+c.loja+'</span></td>'
-      +'<td style="font-weight:500;">'+c.colaboradora+'</td>'
-      +'<td style="font-size:12px;color:var(--ink-60);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(c.descricao||'—')+'</td>'
+      +'<td><span style="font-family:DM Mono,monospace;font-size:12px;font-weight:600;background:var(--blue-lt);color:var(--blue);padding:2px 9px;border-radius:6px;">#'+esc(c.ticket||'—')+'</span></td>'
+      +'<td><span class="loja-pill">'+esc(c.loja)+'</span></td>'
+      +'<td style="font-weight:500;">'+esc(c.colaboradora)+'</td>'
+      +'<td style="font-size:12px;color:var(--ink-60);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.descricao||'—')+'</td>'
       +'<td><span class="badge '+(SCOR[c.status]||'b-aberto')+'">'+c.status+'</span></td>'
       +'<td style="font-size:12px;color:var(--ink-60);">'+fmtData(c.data_abertura||c.data)+'</td>'
       +'<td><button class="btn btn-ghost btn-sm" onclick="abrirDetalheLoja('+c.id+')">✏️ Editar</button></td>'
@@ -1790,11 +1791,11 @@ function renderRelatorio(){
       +'<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#E84343;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;">🚨 Chamados Críticos em Aberto<span style="flex:1;height:1px;background:#EDE8EC;display:block;"></span></div>';
     crit.forEach(function(c){
       critHTML+='<div style="background:#FDEAEA;border-left:4px solid #E84343;border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;">'
-        +'<div style="font-family:DM Mono,monospace;font-size:11px;color:#7A6A74;flex-shrink:0;margin-top:1px;">'+c.id+'</div>'
+        +'<div style="font-family:DM Mono,monospace;font-size:11px;color:#7A6A74;flex-shrink:0;margin-top:1px;">'+esc(c.id)+'</div>'
         +'<div style="flex:1;">'
-          +'<div style="font-weight:600;font-size:13px;margin-bottom:2px;">'+(c.titulo||'Sem título')+'</div>'
-          +'<div style="font-size:12px;color:#7A6A74;">'+short(c.loja)+' · '+c.usuario+' · '+c.sistema+'</div>'
-          +'<div style="font-size:12px;margin-top:4px;">'+(c.descricao||'').slice(0,100)+(c.descricao&&c.descricao.length>100?'…':'')+'</div>'
+          +'<div style="font-weight:600;font-size:13px;margin-bottom:2px;">'+esc(c.titulo||'Sem título')+'</div>'
+          +'<div style="font-size:12px;color:#7A6A74;">'+esc(short(c.loja))+' · '+esc(c.usuario)+' · '+esc(c.sistema)+'</div>'
+          +'<div style="font-size:12px;margin-top:4px;">'+esc((c.descricao||'').slice(0,100))+(c.descricao&&c.descricao.length>100?'…':'')+'</div>'
         +'</div>'
         +'<div style="font-size:11px;font-weight:700;color:#E84343;flex-shrink:0;">💬 '+c.cobr_count+'x</div>'
         +'</div>';
