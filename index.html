@@ -406,6 +406,28 @@ tbody tr:hover{background:var(--cream);}
   font-size:10px;font-weight:700;padding:1px 6px;margin-left:2px;
 }
 
+
+/* ===== Cobrança: aviso (canto superior esquerdo) e tela de pagamento ===== */
+.aviso-cobranca[hidden],.paywall[hidden]{display:none!important;}
+.aviso-cobranca{position:fixed;top:12px;left:12px;z-index:9000;width:min(360px,calc(100vw - 24px));display:flex;gap:10px;align-items:flex-start;background:#fff;color:var(--ink);border:1px solid var(--ink-20);border-left:4px solid var(--rose);border-radius:10px;box-shadow:0 8px 28px rgba(26,16,24,.22);padding:12px 12px 12px 14px;font-size:13px;line-height:1.45;}
+.aviso-cobranca-ico{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:var(--rose-lt);color:var(--rose-dk);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.aviso-cobranca-corpo{flex:1;min-width:0;}
+.aviso-cobranca-link{margin-top:6px;background:none;border:0;padding:0;color:var(--rose-dk);font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;}
+.aviso-cobranca-x{flex-shrink:0;background:none;border:0;color:var(--ink-60);font-size:14px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px;}
+.aviso-cobranca-x:hover{background:var(--rose-lt);color:var(--rose);}
+.paywall{position:fixed;inset:0;z-index:9500;background:rgba(26,16,24,.94);display:flex;align-items:center;justify-content:center;padding:16px;}
+.paywall-card{background:#fff;color:var(--ink);border-radius:16px;padding:28px;width:min(420px,100%);box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.paywall-card h2{margin:0 0 8px;font-size:20px;}
+.paywall-card p{margin:0 0 16px;font-size:14px;line-height:1.5;color:var(--ink-60);}
+.paywall-lbl{display:block;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--ink-60);margin-bottom:6px;}
+.paywall-card input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--ink-20);border-radius:8px;font-size:14px;margin-bottom:14px;}
+.paywall-card input:focus{outline:none;border-color:var(--rose);}
+.paywall-pagar{width:100%;background:var(--rose);color:#fff;border:0;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;}
+.paywall-pagar:hover{background:var(--rose-dk);}
+.paywall-pagar:disabled{opacity:.6;cursor:wait;}
+.paywall-card .paywall-nota{margin:12px 0 0;font-size:12px;}
+.paywall-sair{display:block;margin:6px auto 0;background:none;border:0;color:var(--ink-60);font-size:13px;text-decoration:underline;cursor:pointer;}
+.toast{z-index:10000;}
 </style>
 </head>
 <body>
@@ -810,6 +832,25 @@ tbody tr:hover{background:var(--cream);}
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+<div class="aviso-cobranca" id="ti-aviso-cobranca" role="status" hidden>
+  <span class="aviso-cobranca-ico" aria-hidden="true">i</span>
+  <div class="aviso-cobranca-corpo">
+    <div id="ti-aviso-txt"></div>
+    <button type="button" class="aviso-cobranca-link" id="ti-aviso-assinar">Assinar agora</button>
+  </div>
+  <button type="button" class="aviso-cobranca-x" id="ti-aviso-fechar" aria-label="Fechar aviso">✕</button>
+</div>
+<div class="paywall" id="ti-paywall" role="dialog" aria-modal="true" aria-labelledby="ti-paywall-titulo" hidden>
+  <div class="paywall-card">
+    <h2 id="ti-paywall-titulo">Assinatura necessária</h2>
+    <p id="ti-paywall-txt"></p>
+    <label class="paywall-lbl" for="ti-paywall-email">E-mail da conta Mercado Pago (opcional)</label>
+    <input id="ti-paywall-email" type="email" autocomplete="email" placeholder="vazio = usa o e-mail do login">
+    <button type="button" class="paywall-pagar" id="ti-paywall-assinar">Pagar com Mercado Pago</button>
+    <p class="paywall-nota">Depois de pagar, volte para esta página. A liberação leva alguns instantes.</p>
+    <button type="button" class="paywall-sair" id="ti-paywall-sair">Sair</button>
+  </div>
+</div>
 
 <script>
 // ══ CONFIG SUPABASE ══
@@ -2086,6 +2127,7 @@ function showApp(email){
   $('user-email').textContent = (email||'Agente TI') + badge;
   if(IS_READONLY) aplicarReadonly();
   loadAll();
+  cobrIniciar();
 }
 
 function aplicarReadonly(){
@@ -2106,6 +2148,8 @@ function aplicarReadonly(){
 }
 
 function doLogout(){
+  clearInterval(COBR_POLL);
+  var _av=$('ti-aviso-cobranca'), _pw=$('ti-paywall'); if(_av) _av.hidden=true; if(_pw) _pw.hidden=true;
   localStorage.removeItem('ti_token');
   localStorage.removeItem('ti_refresh');
   localStorage.removeItem('ti_email');
@@ -2208,6 +2252,134 @@ async function sbRequest(method, table, qs, body){
 async function sbGet(table, qs=''){ return sbRequest('GET', table, qs, null); }
 async function sbPost(table, body){ return sbRequest('POST', table, '', body); }
 async function sbPatch(table, qs, body){ return sbRequest('PATCH', table, qs, body); }
+
+// ══ COBRANÇA: aviso (canto superior esquerdo) e tela de pagamento ══
+// Tudo depende do que o banco devolve em ti_central_status_assinatura.
+// Com o interruptor desligado o banco devolve "sem aviso e sem bloqueio" e nada aparece.
+// A trava de verdade fica nas regras do banco (RLS); esta parte é só a tela.
+const FN_ASSINATURA = SB_URL + '/functions/v1/ti-central-criar-assinatura';
+const FN_CONFERIR = SB_URL + '/functions/v1/ti-central-conferir-pagamento';
+let COBR_ULTIMA_CONFERENCIA = 0;
+let COBR_AVISO_FECHADO = false;
+let COBR_POLL = null;
+let COBR_TIMER = null;
+
+function cobrBRL(v){
+  var n = Number(v);
+  if(!isFinite(n)) return '';
+  return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+function cobrData(iso){
+  var p = String(iso||'').split('-');
+  return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : '';
+}
+
+async function cobrStatus(){
+  try{ return await sbRequest('POST','rpc/ti_central_status_assinatura','',{}); }
+  catch(e){ return null; }
+}
+
+function cobrAplicar(st){
+  var av = $('ti-aviso-cobranca'), pw = $('ti-paywall');
+  if(!av || !pw) return;
+  if(!st || typeof st !== 'object'){ av.hidden = true; pw.hidden = true; return; }
+
+  if(st.bloqueado){
+    av.hidden = true;
+    var d = cobrData(st.data_inicio), v = cobrBRL(st.valor);
+    $('ti-paywall-txt').textContent = 'O uso do TI Central é cobrado' + (d ? ' desde ' + d : '') + (v ? ': ' + v + ' por mês' : '') + '. Assine para continuar acessando os chamados.';
+    pw.hidden = false;
+    return;
+  }
+  pw.hidden = true;
+  if(st.aviso && !COBR_AVISO_FECHADO && cobrData(st.aviso.data) && cobrBRL(st.aviso.valor)){
+    $('ti-aviso-txt').textContent = 'A partir de ' + cobrData(st.aviso.data) + ' será cobrado ' + cobrBRL(st.aviso.valor) + ' por mês para usar o TI Central.';
+    av.hidden = false;
+  } else {
+    av.hidden = true;
+  }
+}
+
+// Segunda via: pergunta direto ao Mercado Pago se já existe pagamento aprovado (não depende do webhook).
+async function cobrConferir(){
+  try{
+    COBR_ULTIMA_CONFERENCIA = Date.now();
+    await fetch(FN_CONFERIR, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('ti_token')||'')},
+      body:'{}'
+    });
+  }catch(e){}
+}
+
+async function cobrVerificar(){
+  if(!localStorage.getItem('ti_token')) return null;
+  var st = await cobrStatus();
+  // Bloqueado? Antes de mostrar a tela de pagamento, confere (no máx. a cada 5 min) se já não foi pago.
+  if(st && st.bloqueado && (Date.now() - COBR_ULTIMA_CONFERENCIA) > 5*60*1000){
+    await cobrConferir();
+    st = await cobrStatus();
+  }
+  cobrAplicar(st);
+  return st;
+}
+
+async function cobrAssinar(btn){
+  var orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Abrindo pagamento…';
+  try{
+    var campo = $('ti-paywall-email');
+    var emailMp = campo ? campo.value.trim() : '';
+    var r = await fetch(FN_ASSINATURA, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+(localStorage.getItem('ti_token')||'')},
+      body: JSON.stringify(emailMp ? {payer_email: emailMp} : {})
+    });
+    var d = await r.json().catch(function(){ return {}; });
+    if(d.ja_pago){ toast('✓ Sua assinatura já está em dia.'); await cobrVerificar(); return; }
+    if(!r.ok || !d.init_point) throw new Error(d.erro || 'Não foi possível abrir o pagamento');
+    var u = new URL(d.init_point);
+    if(u.protocol !== 'https:' || !/(^|\.)mercadopago\.com(\.br)?$/.test(u.hostname)) throw new Error('Link de pagamento inválido');
+    window.location.href = u.href;
+  }catch(e){
+    toast('⚠ ' + e.message);
+  }finally{
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function cobrAguardarConfirmacao(){
+  toast('Confirmando seu pagamento…');
+  var tentativas = 0;
+  clearInterval(COBR_POLL);
+  COBR_POLL = setInterval(async function(){
+    tentativas++;
+    await cobrConferir();
+    var st = await cobrVerificar();
+    if(st && st.pago){ clearInterval(COBR_POLL); toast('✓ Pagamento confirmado. Obrigado!'); loadAll(); }
+    else if(tentativas >= 36){ clearInterval(COBR_POLL); toast('Ainda não recebemos a confirmação. Pode levar alguns minutos.'); }
+  }, 5000);
+}
+
+function cobrIniciar(){
+  cobrVerificar();
+  if(!COBR_TIMER){
+    COBR_TIMER = setInterval(cobrVerificar, 5*60*1000);
+    document.addEventListener('visibilitychange', function(){ if(!document.hidden) cobrVerificar(); });
+  }
+  try{
+    var q = new URLSearchParams(location.search);
+    if(q.get('pagamento')){ history.replaceState(null, '', location.pathname); cobrAguardarConfirmacao(); }
+  }catch(e){}
+}
+
+(function(){
+  var b1 = $('ti-aviso-assinar'), b2 = $('ti-paywall-assinar'), x = $('ti-aviso-fechar'), s = $('ti-paywall-sair');
+  if(b1) b1.addEventListener('click', function(){ cobrAssinar(b1); });
+  if(b2) b2.addEventListener('click', function(){ cobrAssinar(b2); });
+  if(x) x.addEventListener('click', function(){ COBR_AVISO_FECHADO = true; $('ti-aviso-cobranca').hidden = true; });
+  if(s) s.addEventListener('click', function(){ doLogout(); });
+})();
 
 // ══ INIT ══
 checkSession();
