@@ -489,6 +489,7 @@ tbody tr:hover{background:var(--cream);}
     <div class="nav-label">Análises</div>
     <div class="nav-item" onclick="navTo('lojas')"><span class="nav-ico">🏪</span>Por Loja</div>
     <div class="nav-item" onclick="navTo('relatorio')"><span class="nav-ico">📋</span>Relatório</div>
+    <div class="nav-item" id="nav-acessos" onclick="navTo('acessos')" style="display:none"><span class="nav-ico">🔐</span>Acessos</div>
   </div>
   <div class="user-bar"><span class="user-bar-email" id="user-email">Agente TI</span><button class="user-bar-btn" onclick="doLogout()">Sair</button></div>
 </nav>
@@ -579,6 +580,20 @@ tbody tr:hover{background:var(--cream);}
     <!-- RELATÓRIO -->
     <div class="panel" id="panel-relatorio">
       <div id="relatorio-bdy"></div>
+    </div>
+
+    <!-- ACESSOS (só administradores; o banco recusa para os demais) -->
+    <div class="panel" id="panel-acessos">
+      <div class="filters" style="margin-bottom:14px;">
+        <select id="ac-dias" onchange="renderAcessos()">
+          <option value="1">Hoje</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30" selected>Últimos 30 dias</option>
+        </select>
+        <button class="btn" onclick="renderAcessos()">↻ Atualizar</button>
+      </div>
+      <div class="card"><div class="tbl-wrap"><table id="tbl-acessos"></table></div></div>
+      <p style="font-size:12px;color:var(--ink-60);margin-top:10px;">“Viu” mostra o que apareceu na tela da pessoa: normal, aviso de cobrança ou bloqueio. “Vezes” conta quantas conferências foram feitas no dia.</p>
     </div>
 
   </div>
@@ -929,14 +944,15 @@ function navTo(tab){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   $('panel-'+tab).classList.add('active');
-  const idx={dashboard:0,chamados:1,'loja-chamados':2,lojas:3,relatorio:4};
+  const idx={dashboard:0,chamados:1,'loja-chamados':2,lojas:3,relatorio:4,acessos:5};
   try{const ni=document.querySelectorAll('.nav-item')[idx[tab]||0];if(ni)ni.classList.add('active');}catch(e){}
-  $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados TI',lojas:'Por Loja',relatorio:'Relatório','loja-chamados':'Chamados de Loja'}[tab]||tab;
+  $('tb-title').textContent={dashboard:'Dashboard',chamados:'Chamados TI',lojas:'Por Loja',relatorio:'Relatório','loja-chamados':'Chamados de Loja',acessos:'Acessos'}[tab]||tab;
   closeSidebar();
   if(tab==='lojas') renderLojas();
   if(tab==='loja-chamados'){ renderLojaChamadosKPIs(); renderLojaChamados(); populateFlLoja(); }
   if(tab==='relatorio') setTimeout(renderRelatorio, 0);
   if(tab==='chamados') renderTodos();
+  if(tab==='acessos') renderAcessos();
 }
 
 // ══ LOAD DATA ══
@@ -2150,6 +2166,8 @@ function aplicarReadonly(){
 function doLogout(){
   clearInterval(COBR_POLL);
   var _av=$('ti-aviso-cobranca'), _pw=$('ti-paywall'); if(_av) _av.hidden=true; if(_pw) _pw.hidden=true;
+  var _na=$('nav-acessos'); if(_na) _na.style.display='none';
+  ACESSO_ULTIMO=''; ACESSO_ULTIMO_EM=0;
   localStorage.removeItem('ti_token');
   localStorage.removeItem('ti_refresh');
   localStorage.removeItem('ti_email');
@@ -2279,10 +2297,52 @@ async function cobrStatus(){
   catch(e){ return null; }
 }
 
+// ── Registro de acessos: anota quem entrou e o que viu (normal / aviso / bloqueio) ──
+let ACESSO_ULTIMO = '';
+let ACESSO_ULTIMO_EM = 0;
+async function acessoRegistrar(visto){
+  try{
+    // evita repetir o mesmo registro a cada poucos segundos (o banco ainda soma por dia)
+    if(visto === ACESSO_ULTIMO && (Date.now() - ACESSO_ULTIMO_EM) < 4*60*1000) return;
+    ACESSO_ULTIMO = visto; ACESSO_ULTIMO_EM = Date.now();
+    await sbRequest('POST','rpc/ti_central_registrar_acesso','',{p_visto: visto});
+  }catch(e){}
+}
+
+// Tela de acessos: só aparece para administradores; o banco recusa a consulta para qualquer outro e-mail.
+function acessoMostrarMenu(st){
+  var n = $('nav-acessos');
+  if(n) n.style.display = (st && st.admin === true) ? '' : 'none';
+}
+async function renderAcessos(){
+  var t = $('tbl-acessos');
+  if(!t) return;
+  t.innerHTML = '<tr><td><div class="loading"><div class="spinner"></div></div></td></tr>';
+  try{
+    var dias = Number(($('ac-dias')||{}).value) || 30;
+    var rows = await sbRequest('POST','rpc/ti_central_listar_acessos','',{p_dias: dias});
+    if(!Array.isArray(rows) || !rows.length){ t.innerHTML = '<tr><td style="padding:18px;color:var(--ink-60)">Nenhum acesso registrado neste período.</td></tr>'; return; }
+    var rot = {normal:'Normal',aviso:'Aviso de cobrança',bloqueio:'Bloqueado'};
+    var cor = {normal:'var(--green)',aviso:'#b87a00',bloqueio:'var(--red)'};
+    var fmt = function(iso){ try{ return new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
+    t.innerHTML = '<thead><tr><th>E-mail</th><th>Dia</th><th>Viu</th><th>Primeira vez</th><th>Última vez</th><th>Vezes</th></tr></thead><tbody>' +
+      rows.map(function(r){
+        var v = rot[r.visto] ? r.visto : 'normal';
+        return '<tr><td style="font-weight:500">'+esc(r.email)+'</td><td>'+esc(cobrData(r.dia))+'</td>'+
+          '<td><span style="font-weight:600;color:'+cor[v]+'">'+esc(rot[v])+'</span></td>'+
+          '<td>'+esc(fmt(r.primeiro_em))+'</td><td>'+esc(fmt(r.ultimo_em))+'</td><td>'+esc(r.vezes)+'</td></tr>';
+      }).join('') + '</tbody>';
+  }catch(e){
+    t.innerHTML = '<tr><td style="padding:18px;color:var(--ink-60)">Sem permissão para ver esta tela.</td></tr>';
+  }
+}
+
 function cobrAplicar(st){
   var av = $('ti-aviso-cobranca'), pw = $('ti-paywall');
   if(!av || !pw) return;
   if(!st || typeof st !== 'object'){ av.hidden = true; pw.hidden = true; return; }
+  acessoMostrarMenu(st);
+  acessoRegistrar(st.bloqueado ? 'bloqueio' : (st.aviso && !COBR_AVISO_FECHADO && cobrData(st.aviso.data) && cobrBRL(st.aviso.valor) ? 'aviso' : 'normal'));
 
   if(st.bloqueado){
     av.hidden = true;
